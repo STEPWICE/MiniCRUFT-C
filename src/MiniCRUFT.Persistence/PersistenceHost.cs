@@ -7,11 +7,23 @@ public sealed class PersistenceHost
 {
     public const int CurrentSaveFormatVersion = 1;
     private const int LegacyUnversionedSaveFormatVersion = 0;
+    private const string DefaultSaveFilename = "world.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true
     };
+
+    public string GetDefaultSavePath()
+    {
+        return Path.GetFullPath(DefaultSaveFilename);
+    }
+
+    public bool SaveFileExists(string? filename = null)
+    {
+        var resolvedFilename = filename ?? GetDefaultSavePath();
+        return File.Exists(resolvedFilename);
+    }
 
     public void Initialize()
     {

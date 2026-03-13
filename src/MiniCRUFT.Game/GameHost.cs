@@ -11,6 +11,12 @@ public sealed class GameHost
 
     public void Initialize(int? seed = null)
     {
+        CreateWorld(seed);
+    }
+
+    public void CreateWorld(int? seed = null)
+    {
+        _world = new WorldHost();
         _world.Initialize(seed);
     }
 

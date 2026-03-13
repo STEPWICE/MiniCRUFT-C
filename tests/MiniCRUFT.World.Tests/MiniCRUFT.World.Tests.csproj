@@ -5,6 +5,7 @@
     <ProjectReference Include="..\..\src\MiniCRUFT.Rendering\MiniCRUFT.Rendering.csproj" />
     <ProjectReference Include="..\..\src\MiniCRUFT.Game\MiniCRUFT.Game.csproj" />
     <ProjectReference Include="..\..\src\MiniCRUFT.Persistence\MiniCRUFT.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\MiniCRUFT.App\MiniCRUFT.App.csproj" />
   </ItemGroup>
 
   <ItemGroup>

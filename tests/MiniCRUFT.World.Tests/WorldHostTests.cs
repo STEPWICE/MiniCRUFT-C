@@ -1,3 +1,4 @@
+using MiniCRUFT.App;
 using MiniCRUFT.Game;
 using MiniCRUFT.Persistence;
 using MiniCRUFT.Rendering;
@@ -863,6 +864,105 @@ public sealed class WorldHostTests
         }
         finally
         {
+            persistence.Shutdown();
+        }
+    }
+
+    [Fact]
+    public void AppCreateWorldHandlerSwapsRuntimeWorldAndHandlesInvalidSeedInput()
+    {
+        var game = new GameHost();
+        game.Initialize(1111);
+        var originalWorld = game.World;
+
+        var invalidMessage = AppHost.HandleCreateWorld(game, "abc");
+        Assert.Contains("Invalid seed", invalidMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Same(originalWorld, game.World);
+        Assert.Equal(1111, game.World.Seed);
+
+        var createdMessage = AppHost.HandleCreateWorld(game, "2222");
+        Assert.Contains("2222", createdMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.NotSame(originalWorld, game.World);
+        Assert.Equal(2222, game.World.Seed);
+
+        game.World.GetOrCreateChunk(0, 0).GetSubchunk(0).Fill(BlockId.Air);
+        game.World.SetBlock(1, 1, 1, BlockId.Stone);
+        game.Update();
+        Assert.True(game.World.TryDrainNextBuiltSubchunkMeshingOutput(out _));
+
+        game.Shutdown();
+    }
+
+    [Fact]
+    public void AppSaveLoadHandlersRoundtripThroughGameAndResumeRendererFlow()
+    {
+        var persistence = new PersistenceHost();
+        persistence.Initialize();
+
+        var savePath = persistence.GetDefaultSavePath();
+        if (File.Exists(savePath))
+        {
+            File.Delete(savePath);
+        }
+
+        try
+        {
+            var game = new GameHost();
+            game.Initialize(4462);
+
+            var originChunk = game.World.GetOrCreateChunk(0, 0);
+            var eastChunk = game.World.GetOrCreateChunk(1, 0);
+
+            foreach (var chunk in new[] { originChunk, eastChunk })
+            {
+                chunk.GetSubchunk(0).Fill(BlockId.Air);
+                chunk.GetSubchunk(1).Fill(BlockId.Air);
+
+                foreach (var subchunk in chunk.Subchunks)
+                {
+                    subchunk.MarkMeshBuilt();
+                }
+            }
+
+            game.World.SetBlock(15, 16, 1, BlockId.Stone);
+
+            var missingLoadMessage = AppHost.HandleLoadWorld(game, persistence);
+            Assert.Contains("No save file", missingLoadMessage, StringComparison.OrdinalIgnoreCase);
+
+            var saveMessage = AppHost.HandleSaveWorld(game, persistence);
+            Assert.Contains(savePath, saveMessage, StringComparison.OrdinalIgnoreCase);
+            Assert.True(File.Exists(savePath));
+
+            game.CreateWorld(99);
+            Assert.Equal(99, game.World.Seed);
+
+            var loadMessage = AppHost.HandleLoadWorld(game, persistence);
+            Assert.Contains("Loaded world seed 4462", loadMessage, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(4462, game.World.Seed);
+            Assert.Equal(BlockId.Stone, game.World.GetBlock(15, 16, 1));
+
+            game.Update();
+
+            var renderer = new RendererHost();
+            renderer.Initialize();
+
+            Assert.Equal(16, renderer.PickupBuiltSubchunkMeshingOutputs(game.World));
+            Assert.Equal(16, renderer.ProcessPendingUploads(16));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(0, 0), 0, out _));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(0, 0), 1, out _));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(1, 0), 0, out _));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(1, 0), 1, out _));
+
+            renderer.Shutdown();
+            game.Shutdown();
+        }
+        finally
+        {
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
             persistence.Shutdown();
         }
     }
