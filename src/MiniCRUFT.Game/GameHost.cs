@@ -4,14 +4,20 @@ namespace MiniCRUFT.Game;
 
 public sealed class GameHost
 {
-    private readonly WorldHost _world = new();
+    private WorldHost _world = new();
     private readonly WorldMeshingScheduler _meshingScheduler = new();
 
     public WorldHost World => _world;
 
-    public void Initialize()
+    public void Initialize(int? seed = null)
     {
-        _world.Initialize();
+        _world.Initialize(seed);
+    }
+
+    public void LoadWorld(WorldHost world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        _world = world;
     }
 
     public void Update()

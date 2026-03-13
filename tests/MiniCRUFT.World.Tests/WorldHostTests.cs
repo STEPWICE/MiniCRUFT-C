@@ -811,6 +811,63 @@ public sealed class WorldHostTests
     }
 
     [Fact]
+    public void GameHostCanLoadARestoredWorldAndResumeMeshingFlow()
+    {
+        var persistence = new PersistenceHost();
+        persistence.Initialize();
+
+        try
+        {
+            var source = new WorldHost();
+            source.Initialize(4461);
+
+            var originChunk = source.GetOrCreateChunk(0, 0);
+            var eastChunk = source.GetOrCreateChunk(1, 0);
+
+            foreach (var chunk in new[] { originChunk, eastChunk })
+            {
+                chunk.GetSubchunk(0).Fill(BlockId.Air);
+                chunk.GetSubchunk(1).Fill(BlockId.Air);
+
+                foreach (var subchunk in chunk.Subchunks)
+                {
+                    subchunk.MarkMeshBuilt();
+                }
+            }
+
+            source.SetBlock(15, 16, 1, BlockId.Stone);
+
+            var restored = persistence.LoadWorldFromJson(persistence.SaveWorldToJson(source));
+            var game = new GameHost();
+            game.Initialize();
+            game.LoadWorld(restored);
+
+            Assert.Equal(4461, game.World.Seed);
+            Assert.Equal(BlockId.Stone, game.World.GetBlock(15, 16, 1));
+
+            game.Update();
+
+            var renderer = new RendererHost();
+            renderer.Initialize();
+
+            Assert.Equal(16, renderer.PickupBuiltSubchunkMeshingOutputs(game.World));
+            Assert.Equal(16, renderer.PendingSubchunkUploadCount);
+            Assert.Equal(16, renderer.ProcessPendingUploads(16));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(0, 0), 1, out _));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(1, 0), 1, out _));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(0, 0), 0, out _));
+            Assert.True(renderer.TryGetUploadedSubchunkMesh(new ChunkCoordinate(1, 0), 0, out _));
+
+            renderer.Shutdown();
+            game.Shutdown();
+        }
+        finally
+        {
+            persistence.Shutdown();
+        }
+    }
+
+    [Fact]
     public void GameUpdateBuildsMeshesAndRendererUploadPumpConsumesThem()
     {
         var game = new GameHost();
