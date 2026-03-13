@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.Platform/PlatformServices.cs",
+  "revision_id": "888fff5e-1c26-4470-88ba-0d71d6ee3a68",
+  "metadata": {
+    "timestamp": "2026-03-14T00:22:48.689582",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 153,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.Platform;\n\npublic sealed class PlatformServices\n{\n    public void Initialize()\n    {\n    }\n\n    public void Shutdown()\n    {\n    }\n}\n",
+  "saved_at": "2026-03-14T00:22:48.689582"
+}

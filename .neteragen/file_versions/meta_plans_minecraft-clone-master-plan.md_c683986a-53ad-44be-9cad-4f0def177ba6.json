@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/plans/minecraft-clone-master-plan.md",
+  "revision_id": "c683986a-53ad-44be-9cad-4f0def177ba6",
+  "metadata": {
+    "timestamp": "2026-03-14T00:00:38.017086",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1198,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "---\nSECTION_ID: plans.minecraft-clone-master-plan\nTYPE: plan\nSTATUS: in_progress\nPRIORITY: high\n---\n\n# Minecraft Clone Master Plan\n\nGOAL: Produce a full technical plan and documentation structure for a Minecraft Beta 1.7.3-level clone aligned with project constraints.\nTIMELINE: current session\n\n## Task Checklist\n\n### Phase 1: Inputs and constraints\n- [x] Review available project context and constraints\n- [x] Validate doc placement and output structure\n\n### Phase 2: Technical plan\n- [x] Define recommended engine architecture on C#/.NET 10/DX12 via Vortice\n- [x] Define phased roadmap\n- [x] Define chunk, meshing, and frametime-first pipeline decisions\n\n### Phase 3: Documentation structure\n- [x] Define doc file list and short contents\n- [x] Finalize concise deliverable\n\n## Notes\n- Windows-only, Win10+\n- Singleplayer first, co-op later\n- Beta 1.7.3 spirit and mechanics\n- Modern UX 2026\n- RU/EN support\n- Stable frametime prioritized over peak FPS\n- Existing assets available in /assets\n\n## Success Criteria\n- [ ] Architecture is implementation-ready\n- [ ] Roadmap is phased and practical\n- [ ] Chunk/meshing choices are concrete\n- [ ] Documentation tree is complete enough to start writing\n",
+  "saved_at": "2026-03-14T00:00:38.017086"
+}

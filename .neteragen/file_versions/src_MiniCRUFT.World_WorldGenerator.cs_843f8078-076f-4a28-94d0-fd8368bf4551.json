@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.World/WorldGenerator.cs",
+  "revision_id": "843f8078-076f-4a28-94d0-fd8368bf4551",
+  "metadata": {
+    "timestamp": "2026-03-14T00:25:33.807037",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1740,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.World;\n\npublic sealed class WorldGenerator\n{\n    public WorldGenerator(int seed)\n    {\n        Seed = seed;\n    }\n\n    public int Seed { get; }\n\n    public Chunk GenerateChunk(ChunkCoordinate coordinate)\n    {\n        var chunk = new Chunk(coordinate);\n\n        for (var localZ = 0; localZ < ChunkConstants.ChunkSizeZ; localZ++)\n        {\n            for (var localX = 0; localX < ChunkConstants.ChunkSizeX; localX++)\n            {\n                var worldX = coordinate.OriginX + localX;\n                var worldZ = coordinate.OriginZ + localZ;\n                var height = GetSurfaceHeight(worldX, worldZ);\n\n                for (var y = 0; y <= height; y++)\n                {\n                    var blockId = ResolveBlock(y, height);\n                    chunk.SetBlock(new LocalBlockCoordinate(localX, y, localZ), blockId);\n                }\n            }\n        }\n\n        chunk.State = ChunkState.ReadyVoxelData;\n\n        return chunk;\n    }\n\n    private int GetSurfaceHeight(int worldX, int worldZ)\n    {\n        var noise = Hash(worldX, worldZ);\n        var variation = noise % 5;\n        return 48 + variation;\n    }\n\n    private BlockId ResolveBlock(int y, int surfaceHeight)\n    {\n        if (y == surfaceHeight)\n        {\n            return BlockId.Grass;\n        }\n\n        if (y >= surfaceHeight - 3)\n        {\n            return BlockId.Dirt;\n        }\n\n        return BlockId.Stone;\n    }\n\n    private int Hash(int worldX, int worldZ)\n    {\n        unchecked\n        {\n            var hash = Seed;\n            hash = (hash * 397) ^ worldX;\n            hash = (hash * 397) ^ worldZ;\n            hash ^= hash >> 13;\n            hash *= 16777619;\n            return hash & int.MaxValue;\n        }\n    }\n}\n",
+  "saved_at": "2026-03-14T00:25:33.807037"
+}

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>MiniCRUFT.Platform</RootNamespace>
+    <AssemblyName>MiniCRUFT.Platform</AssemblyName>
+  </PropertyGroup>
+</Project>

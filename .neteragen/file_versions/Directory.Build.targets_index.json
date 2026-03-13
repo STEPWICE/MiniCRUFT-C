@@ -1,0 +1,33 @@
+{
+  "file_name": "Directory.Build.targets",
+  "revisions": [
+    {
+      "revision_id": "02113cff-708e-4af0-8904-a07f2fd41312",
+      "metadata": {
+        "timestamp": "2026-03-14T00:12:17.337718",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 271,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:12:17.338231"
+    },
+    {
+      "revision_id": "df949d55-02eb-4f20-bb8c-7f627da789b1",
+      "metadata": {
+        "timestamp": "2026-03-14T00:12:17.336173",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:12:17.336682"
+    }
+  ]
+}

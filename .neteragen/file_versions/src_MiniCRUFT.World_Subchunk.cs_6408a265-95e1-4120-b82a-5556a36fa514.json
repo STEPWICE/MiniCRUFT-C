@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.World/Subchunk.cs",
+  "revision_id": "6408a265-95e1-4120-b82a-5556a36fa514",
+  "metadata": {
+    "timestamp": "2026-03-14T01:03:21.502027",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 2210,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Cody",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.World;\n\npublic sealed class Subchunk\n{\n    private readonly BlockId[] _blocks = new BlockId[ChunkConstants.SubchunkSize * ChunkConstants.SubchunkSize * ChunkConstants.SubchunkSize];\n\n    public bool IsDirty { get; private set; } = true;\n    public SubchunkMeshState MeshState { get; private set; } = SubchunkMeshState.NeedsBuild;\n    public int Revision { get; private set; } = 1;\n    public int BuildVersion { get; private set; }\n    public SubchunkMeshingOutput? CurrentMeshingOutput { get; private set; }\n\n    public BlockId GetBlock(int x, int y, int z)\n    {\n        return _blocks[GetIndex(x, y, z)];\n    }\n\n    public void SetBlock(int x, int y, int z, BlockId blockId)\n    {\n        _blocks[GetIndex(x, y, z)] = blockId;\n        MarkDirty();\n    }\n\n    public void Fill(BlockId blockId)\n    {\n        Array.Fill(_blocks, blockId);\n        MarkDirty();\n    }\n\n    public ReadOnlySpan<BlockId> AsSpan() => _blocks;\n\n    public void MarkDirty()\n    {\n        Revision++;\n        IsDirty = true;\n        MeshState = SubchunkMeshState.NeedsBuild;\n        CurrentMeshingOutput = null;\n    }\n\n    public void MarkMeshQueued()\n    {\n        MeshState = SubchunkMeshState.Queued;\n    }\n\n    public bool TryMarkMeshBuilt(int revision)\n    {\n        if (revision != Revision)\n        {\n            return false;\n        }\n\n        IsDirty = false;\n        MeshState = SubchunkMeshState.Built;\n        BuildVersion++;\n        return true;\n    }\n\n    public void MarkMeshBuilt()\n    {\n        _ = TryMarkMeshBuilt(Revision);\n    }\n\n    public void ClearDirtyFlag()\n    {\n        IsDirty = false;\n    }\n\n    private static int GetIndex(int x, int y, int z)\n    {\n        if ((uint)x >= ChunkConstants.SubchunkSize)\n        {\n            throw new ArgumentOutOfRangeException(nameof(x));\n        }\n\n        if ((uint)y >= ChunkConstants.SubchunkSize)\n        {\n            throw new ArgumentOutOfRangeException(nameof(y));\n        }\n\n        if ((uint)z >= ChunkConstants.SubchunkSize)\n        {\n            throw new ArgumentOutOfRangeException(nameof(z));\n        }\n\n        return x + (z * ChunkConstants.SubchunkSize) + (y * ChunkConstants.SubchunkSize * ChunkConstants.SubchunkSize);\n    }\n}\n",
+  "saved_at": "2026-03-14T01:03:21.502027"
+}

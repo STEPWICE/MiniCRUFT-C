@@ -1,0 +1,11 @@
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\bin\Debug\net10.0\MiniCRUFT.World.deps.json
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\bin\Debug\net10.0\MiniCRUFT.World.dll
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\bin\Debug\net10.0\MiniCRUFT.World.pdb
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\MiniCRUFT.World.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\MiniCRUFT.World.AssemblyInfoInputs.cache
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\MiniCRUFT.World.AssemblyInfo.cs
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\MiniCRUFT.World.csproj.CoreCompileInputs.cache
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\MiniCRUFT.World.dll
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\refint\MiniCRUFT.World.dll
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\MiniCRUFT.World.pdb
+C:\Users\STEPWICE\Desktop\MiniCRUFT\src\MiniCRUFT.World\obj\Debug\net10.0\ref\MiniCRUFT.World.dll

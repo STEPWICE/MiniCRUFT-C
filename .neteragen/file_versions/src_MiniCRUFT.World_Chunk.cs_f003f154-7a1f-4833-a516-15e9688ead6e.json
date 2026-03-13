@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.World/Chunk.cs",
+  "revision_id": "f003f154-7a1f-4833-a516-15e9688ead6e",
+  "metadata": {
+    "timestamp": "2026-03-14T00:35:27.693301",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1763,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.World;\n\npublic sealed class Chunk\n{\n    private readonly Subchunk[] _subchunks = new Subchunk[ChunkConstants.SubchunkCountPerChunk];\n\n    public Chunk(ChunkCoordinate coordinate)\n    {\n        Coordinate = coordinate;\n\n        for (var i = 0; i < _subchunks.Length; i++)\n        {\n            _subchunks[i] = new Subchunk();\n        }\n    }\n\n    public ChunkCoordinate Coordinate { get; }\n    public ChunkState State { get; internal set; } = ChunkState.Unloaded;\n    public IReadOnlyList<Subchunk> Subchunks => _subchunks;\n\n    public Subchunk GetSubchunk(int subchunkIndex)\n    {\n        if ((uint)subchunkIndex >= _subchunks.Length)\n        {\n            throw new ArgumentOutOfRangeException(nameof(subchunkIndex));\n        }\n\n        return _subchunks[subchunkIndex];\n    }\n\n    public BlockId GetBlock(LocalBlockCoordinate localCoordinate)\n    {\n        return GetSubchunk(localCoordinate.SubchunkIndex).GetBlock(\n            localCoordinate.X,\n            localCoordinate.SubchunkLocalY,\n            localCoordinate.Z);\n    }\n\n    public void SetBlock(LocalBlockCoordinate localCoordinate, BlockId blockId)\n    {\n        GetSubchunk(localCoordinate.SubchunkIndex).SetBlock(\n            localCoordinate.X,\n            localCoordinate.SubchunkLocalY,\n            localCoordinate.Z,\n            blockId);\n    }\n\n    public void MarkSubchunkDirty(int subchunkIndex)\n    {\n        GetSubchunk(subchunkIndex).MarkDirty();\n    }\n\n    public int DirtySubchunkCount\n    {\n        get\n        {\n            var count = 0;\n            foreach (var subchunk in _subchunks)\n            {\n                if (subchunk.IsDirty)\n                {\n                    count++;\n                }\n            }\n\n            return count;\n        }\n    }\n}\n",
+  "saved_at": "2026-03-14T00:35:27.693301"
+}

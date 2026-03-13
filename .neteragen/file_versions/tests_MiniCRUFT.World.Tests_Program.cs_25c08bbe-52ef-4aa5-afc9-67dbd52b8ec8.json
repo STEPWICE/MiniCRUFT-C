@@ -1,0 +1,16 @@
+{
+  "file_name": "tests/MiniCRUFT.World.Tests/Program.cs",
+  "revision_id": "25c08bbe-52ef-4aa5-afc9-67dbd52b8ec8",
+  "metadata": {
+    "timestamp": "2026-03-14T01:25:11.775149",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 0,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": "Move code block to tests/MiniCRUFT.World.Tests/WorldHostTests.cs"
+  },
+  "content": "",
+  "saved_at": "2026-03-14T01:25:11.775149"
+}

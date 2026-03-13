@@ -1,0 +1,131 @@
+{
+  "file_name": "meta/plans/minecraft-clone-master-plan.md",
+  "revisions": [
+    {
+      "revision_id": "ebbd271b-d070-4520-b1a9-a81f2df0d16e",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:42.828846",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1334,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:02:42.832157"
+    },
+    {
+      "revision_id": "d953c404-433b-4f52-8819-e5803e1ae17d",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:39.669631",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1336,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:02:39.672264"
+    },
+    {
+      "revision_id": "bd0ac8aa-5159-4112-946f-8d37cbbb3a6d",
+      "metadata": {
+        "timestamp": "2026-03-14T00:00:44.211330",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1336,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:00:44.212873"
+    },
+    {
+      "revision_id": "c683986a-53ad-44be-9cad-4f0def177ba6",
+      "metadata": {
+        "timestamp": "2026-03-14T00:00:38.017086",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1198,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:00:38.018116"
+    },
+    {
+      "revision_id": "c699bd84-3a0e-48c6-8897-9d1c42a48a0f",
+      "metadata": {
+        "timestamp": "2026-03-13T23:56:29.644882",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1196,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-13T23:56:29.664438"
+    },
+    {
+      "revision_id": "44f1722c-cccd-46b8-897f-ae04765785cc",
+      "metadata": {
+        "timestamp": "2026-03-13T23:56:26.308563",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1196,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-13T23:56:26.309633"
+    },
+    {
+      "revision_id": "2b8124da-6f0b-44a3-93ac-70d03963d07d",
+      "metadata": {
+        "timestamp": "2026-03-13T23:56:19.717224",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1198,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-13T23:56:19.718233"
+    },
+    {
+      "revision_id": "fa21657f-8abc-485c-bb80-063868b7eaaf",
+      "metadata": {
+        "timestamp": "2026-03-13T23:56:13.729155",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1198,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-13T23:56:13.730161"
+    },
+    {
+      "revision_id": "f5ded5bb-7fa2-438a-b5f5-512a4289fb57",
+      "metadata": {
+        "timestamp": "2026-03-13T23:56:13.726414",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-13T23:56:13.727417"
+    }
+  ]
+}

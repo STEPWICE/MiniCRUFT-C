@@ -1,0 +1,33 @@
+{
+  "file_name": "src/MiniCRUFT.World/LocalBlockCoordinate.cs",
+  "revisions": [
+    {
+      "revision_id": "c342bfe5-1a75-4788-93cf-0eb0aa1d376f",
+      "metadata": {
+        "timestamp": "2026-03-14T00:25:17.972488",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1189,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:25:17.981601"
+    },
+    {
+      "revision_id": "3002ae3f-c4a0-49b0-bc4b-46d5e6712f21",
+      "metadata": {
+        "timestamp": "2026-03-14T00:25:17.966910",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:25:17.969817"
+    }
+  ]
+}

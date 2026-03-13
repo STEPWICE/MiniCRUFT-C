@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.Game/GameHost.cs",
+  "revision_id": "2972c988-968a-42ca-981b-71475e22ae07",
+  "metadata": {
+    "timestamp": "2026-03-14T01:19:56.571002",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 481,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "using MiniCRUFT.World;\n\nnamespace MiniCRUFT.Game;\n\npublic sealed class GameHost\n{\n    private readonly WorldHost _world = new();\n    private readonly WorldMeshingScheduler _meshingScheduler = new();\n\n    public WorldHost World => _world;\n\n    public void Initialize()\n    {\n        _world.Initialize();\n    }\n\n    public void Update()\n    {\n        _meshingScheduler.ProcessDirtySubchunkSnapshots(_world);\n    }\n\n    public void Shutdown()\n    {\n        _world.Shutdown();\n    }\n}\n",
+  "saved_at": "2026-03-14T01:19:56.571510"
+}

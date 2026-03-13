@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>MiniCRUFT.World</RootNamespace>
+    <AssemblyName>MiniCRUFT.World</AssemblyName>
+  </PropertyGroup>
+</Project>

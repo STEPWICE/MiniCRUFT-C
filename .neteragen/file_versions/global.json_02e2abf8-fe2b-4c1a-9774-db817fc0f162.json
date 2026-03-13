@@ -1,0 +1,16 @@
+{
+  "file_name": "global.json",
+  "revision_id": "02e2abf8-fe2b-4c1a-9774-db817fc0f162",
+  "metadata": {
+    "timestamp": "2026-03-14T00:08:29.473204",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 91,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "{\n  \"sdk\": {\n    \"version\": \"10.0.100-preview.7\",\n    \"rollForward\": \"latestFeature\"\n  }\n}\n",
+  "saved_at": "2026-03-14T00:08:29.473204"
+}

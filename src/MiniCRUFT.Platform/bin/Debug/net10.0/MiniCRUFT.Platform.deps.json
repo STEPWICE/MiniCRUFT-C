@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "MiniCRUFT.Platform/0.1.0-alpha": {
+        "runtime": {
+          "MiniCRUFT.Platform.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MiniCRUFT.Platform/0.1.0-alpha": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

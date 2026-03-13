@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/plans/minicruft-phase-3-load-hardening.md",
+  "revision_id": "199615bd-9586-4853-87dd-37300de1eb33",
+  "metadata": {
+    "timestamp": "2026-03-14T01:41:19.160911",
+    "type": "cache_version",
+    "source": "external_edit",
+    "size": 1882,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": "External edit"
+  },
+  "content": "---\nSECTION_ID: plans.minicruft-phase-3-load-hardening\nTYPE: plan\n---\n\n# MiniCRUFT Phase 3 Load Hardening\n\nGOAL: Harden the new save/load seam with input validation, corrupt snapshot handling, and explicit snapshot format version checks without polluting `WorldHost` / `PersistenceHost` ownership.\nTIMELINE: current session\n\n## Decision\n- Pick **load validation hardening + snapshot format versioning** as the next minimal slice.\n- Reason: it makes the existing save/load seam safer without expanding storage scope or dragging renderer state into persistence.\n\n## Ownership Split\n- `MiniCRUFT.World`: validate imported snapshot shape/invariants that are world-domain\n- `MiniCRUFT.Persistence`: validate JSON payloads, own format version field, and reject unsupported/corrupt serialized data cleanly\n- `MiniCRUFT.Rendering`: no changes\n- `MiniCRUFT.Game` / `MiniCRUFT.App`: no changes unless tests reveal tiny wiring need\n\n## Active Session Progress\n- [*] Define scope and file targets\n- [ ] Implement snapshot version field and compatibility checks\n- [ ] Add load validation for malformed/corrupt snapshot payloads\n- [ ] Keep world/persistence boundaries clean during validation\n- [ ] Add focused failure-path tests\n- [ ] Run focused tests and update checkpoint\n\n## Likely File Targets\n- `src/MiniCRUFT.Persistence/PersistenceHost.cs`\n- `src/MiniCRUFT.World/WorldHost.cs`\n- maybe one tiny snapshot DTO/constant file if truly needed\n- `tests/MiniCRUFT.World.Tests/WorldHostTests.cs`\n\n## Success Criteria\n- saved JSON includes an explicit snapshot format version\n- load rejects unsupported future/invalid versions with clear failure\n- load rejects malformed/corrupt snapshot JSON instead of partially importing\n- world-domain validation stays in world import path; persistence owns serialized format concerns\n- focused tests prove happy path still works and failure paths are covered\n",
+  "saved_at": "2026-03-14T01:41:19.160911"
+}

@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/plans/minecraft-clone-implementation-phase-1.md",
+  "revision_id": "92fe14f3-b5a9-4837-9589-24b5af08398c",
+  "metadata": {
+    "timestamp": "2026-03-14T00:08:11.904615",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1371,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "---\nSECTION_ID: plans.minecraft-clone-implementation-phase-1\nTYPE: plan\nSTATUS: in_progress\nPRIORITY: high\n---\n\n# Minecraft Clone Implementation Phase 1\n\nGOAL: Create the initial .NET solution structure and starter code skeleton for the Minecraft clone.\nTIMELINE: current session\n\n## Task Checklist\n\n### Phase 1: Solution map and boundaries\n- [x] Confirm phase 1 scope and constraints\n- [x] Get recommended project map and dependency boundaries\n\n### Phase 2: Scaffold plan\n- [x] Define exact initial project set and starter files\n- [*] Create root solution/config files\n- [ ] Create src project structure and starter code\n\n### Phase 3: Validation\n- [ ] Review resulting file tree for correctness\n- [ ] Update next-step implementation backlog\n\n## Decisions\n- Use project name prefix `MinecraftClone`\n- Keep runtime boundaries explicit: App / Platform / Game / World / Rendering / Persistence\n- Keep networking/modding/audio out of phase 1\n- Chunk model fixed at `16x16x128`, subchunk `16x16x16`\n- Frametime-first boundaries from docs stay mandatory\n\n## Owners\n- Archy: solution map and dependency boundaries\n- Cody: starter skeleton and minimal file set\n\n## Success Criteria\n- [ ] Root solution/config files exist\n- [ ] Starter projects exist under `src/`\n- [ ] Project references follow agreed boundaries\n- [ ] Initial code skeleton is ready for next implementation step\n",
+  "saved_at": "2026-03-14T00:08:11.904615"
+}

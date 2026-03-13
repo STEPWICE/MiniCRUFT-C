@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.World/ChunkCoordinate.cs",
+  "revision_id": "2210b82d-dca3-4aad-a294-944f421aaff5",
+  "metadata": {
+    "timestamp": "2026-03-14T00:25:49.147795",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 952,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.World;\n\npublic readonly record struct ChunkCoordinate(int X, int Z)\n{\n    public int OriginX => X * ChunkConstants.ChunkSizeX;\n    public int OriginZ => Z * ChunkConstants.ChunkSizeZ;\n\n    public static ChunkCoordinate FromWorldBlock(int worldX, int worldZ)\n    {\n        return new ChunkCoordinate(\n            FloorDiv(worldX, ChunkConstants.ChunkSizeX),\n            FloorDiv(worldZ, ChunkConstants.ChunkSizeZ));\n    }\n\n    internal static int FloorDiv(int value, int divisor)\n    {\n        var quotient = value / divisor;\n        var remainder = value % divisor;\n\n        return remainder != 0 && ((remainder < 0) != (divisor < 0))\n            ? quotient - 1\n            : quotient;\n    }\n\n    internal static int PositiveModulo(int value, int divisor)\n    {\n        var remainder = value % divisor;\n        return remainder < 0 ? remainder + divisor : remainder;\n    }\n\n    public override string ToString() => $\"({X}, {Z})\";\n}\n",
+  "saved_at": "2026-03-14T00:25:49.147795"
+}

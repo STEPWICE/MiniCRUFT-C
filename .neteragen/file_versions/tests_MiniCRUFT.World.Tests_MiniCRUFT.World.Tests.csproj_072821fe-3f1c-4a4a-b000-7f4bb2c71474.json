@@ -1,0 +1,16 @@
+{
+  "file_name": "tests/MiniCRUFT.World.Tests/MiniCRUFT.World.Tests.csproj",
+  "revision_id": "072821fe-3f1c-4a4a-b000-7f4bb2c71474",
+  "metadata": {
+    "timestamp": "2026-03-14T01:20:30.006321",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 936,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "﻿<Project Sdk=\"Microsoft.NET.Sdk\">\n\n  <ItemGroup>\n    <ProjectReference Include=\"..\\..\\src\\MiniCRUFT.World\\MiniCRUFT.World.csproj\" />\n    <ProjectReference Include=\"..\\..\\src\\MiniCRUFT.Rendering\\MiniCRUFT.Rendering.csproj\" />\n    <ProjectReference Include=\"..\\..\\src\\MiniCRUFT.Game\\MiniCRUFT.Game.csproj\" />\n  </ItemGroup>\n\n  <ItemGroup>\n    <PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.14.1\" />\n    <PackageReference Include=\"xunit\" Version=\"2.9.3\" />\n    <PackageReference Include=\"xunit.runner.visualstudio\" Version=\"3.1.5\">\n      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>\n      <PrivateAssets>all</PrivateAssets>\n    </PackageReference>\n  </ItemGroup>\n\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n    <IsPackable>false</IsPackable>\n  </PropertyGroup>\n\n</Project>\n",
+  "saved_at": "2026-03-14T01:20:30.006321"
+}

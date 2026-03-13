@@ -1,0 +1,61 @@
+{
+  "file_name": "src/MiniCRUFT.App/AppHost.cs",
+  "revisions": [
+    {
+      "revision_id": "e8183d6e-9d46-4abb-be6f-7ec0359e4751",
+      "metadata": {
+        "timestamp": "2026-03-14T01:31:27.337346",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 868,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:31:27.338364"
+    },
+    {
+      "revision_id": "2f08b123-27c1-495d-b8d8-55621816c581",
+      "metadata": {
+        "timestamp": "2026-03-14T01:14:43.018228",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 826,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:14:43.021586"
+    },
+    {
+      "revision_id": "053ecfee-b453-4490-97eb-db3832aa9ba2",
+      "metadata": {
+        "timestamp": "2026-03-14T00:21:48.611458",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 762,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:21:48.615836"
+    },
+    {
+      "revision_id": "d01eec19-90c5-4422-a64a-c3629993cbb9",
+      "metadata": {
+        "timestamp": "2026-03-14T00:21:48.599141",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 787,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:21:48.600167"
+    }
+  ]
+}

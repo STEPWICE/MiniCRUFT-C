@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.World/WorldHost.cs",
+  "revision_id": "29d27ff8-067d-4808-ae32-036b77be0872",
+  "metadata": {
+    "timestamp": "2026-03-14T00:25:49.147795",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1408,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.World;\n\npublic sealed class WorldHost\n{\n    private readonly Dictionary<ChunkCoordinate, Chunk> _chunks = new();\n    private WorldGenerator? _generator;\n\n    public int Seed { get; private set; } = 12345;\n    public int LoadedChunkCount => _chunks.Count;\n    public int GeneratedChunkCount { get; private set; }\n\n    public IReadOnlyCollection<Chunk> Chunks => _chunks.Values;\n\n    public void Initialize(int? seed = null)\n    {\n        Seed = seed ?? Seed;\n        _chunks.Clear();\n        GeneratedChunkCount = 0;\n        _generator = new WorldGenerator(Seed);\n    }\n\n    public Chunk GetOrCreateChunk(int x, int z)\n    {\n        EnsureInitialized();\n\n        var coordinate = new ChunkCoordinate(x, z);\n        if (_chunks.TryGetValue(coordinate, out var existingChunk))\n        {\n            return existingChunk;\n        }\n\n        var generatedChunk = _generator!.GenerateChunk(coordinate);\n        _chunks.Add(coordinate, generatedChunk);\n        GeneratedChunkCount++;\n\n        return generatedChunk;\n    }\n\n    public bool TryGetChunk(int x, int z, out Chunk? chunk)\n    {\n        return _chunks.TryGetValue(new ChunkCoordinate(x, z), out chunk);\n    }\n\n    public void Shutdown()\n    {\n        _chunks.Clear();\n        GeneratedChunkCount = 0;\n        _generator = null;\n    }\n\n    private void EnsureInitialized()\n    {\n        _generator ??= new WorldGenerator(Seed);\n    }\n}\n",
+  "saved_at": "2026-03-14T00:25:49.147795"
+}

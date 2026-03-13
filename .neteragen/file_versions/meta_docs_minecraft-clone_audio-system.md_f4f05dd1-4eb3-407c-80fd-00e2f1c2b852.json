@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/docs/minecraft-clone/audio-system.md",
+  "revision_id": "f4f05dd1-4eb3-407c-80fd-00e2f1c2b852",
+  "metadata": {
+    "timestamp": "2026-03-14T00:02:21.036049",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 2315,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "---\nSECTION_ID: docs.minecraft-clone.audio-system\nTYPE: note\n---\n\n# Audio System\n\n## Goal\nProvide a lightweight, reliable audio system that supports the core sandbox experience without hurting frametime.\n\n## Audio Pillars\n- **Responsiveness**: actions must sound immediate\n- **Clarity**: gameplay-relevant sounds must be easy to parse\n- **Mood**: ambience supports exploration without overwhelming it\n- **Performance**: no heavy runtime audio processing on critical path\n\n## Categories\n### UI\n- button hover/click\n- open/close inventory\n- error/invalid action feedback\n\n### Player / World Interaction\n- block break\n- block place\n- footsteps\n- jump/land\n- pickup/drop\n\n### Environment\n- wind/ambient beds if used\n- cave ambience\n- water/lava proximity\n- weather later\n\n### Creatures / Combat\n- passive mob vocalizations\n- hostile mob cues\n- hit/hurt\n- death\n- explosion\n\n### Music\n- sparse ambient/background tracks\n- avoid constant looping fatigue\n- music should feel occasional, not intrusive\n\n## Functional Requirements\n- one-shot playback\n- looping playback\n- per-category volume controls\n- positional audio for world sounds\n- listener tied to player/camera\n- concurrency limits to avoid spam\n\n## Mix Controls\nAt minimum:\n- master volume\n- music volume\n- SFX volume\n- UI volume\n- ambient volume\n\n## Playback Rules\n- high-priority sounds should not be dropped easily\n- repetitive sounds need cooldown/variation handling\n- same-sound spam should be capped\n- distant sounds should attenuate cleanly\n\n## Data-Driven Sound Events\nUse event ids mapped to assets/settings.\n\nExample:\n```json\n{\n  \"block.place.stone\": {\n    \"clips\": [\"stone_place_01.ogg\", \"stone_place_02.ogg\"],\n    \"volume\": 0.9,\n    \"pitchMin\": 0.98,\n    \"pitchMax\": 1.02\n    }\n}\n```\n\n## Technical Notes\n- Asset decoding/loading should avoid gameplay hitches\n- Preload common UI and block interaction sounds\n- Stream or lazily load large music assets\n- Keep API simple: play, stop, set volume, update listener\n\n## Future Extensions\n- biome-based ambience\n- underwater filtering\n- reverb zones\n- subtitle integration\n- network-aware audio events for co-op\n\n## Acceptance Criteria\n- core actions have immediate audio feedback\n- audio settings persist\n- no audible stutter during normal traversal\n- positional cues help gameplay instead of creating noise\n",
+  "saved_at": "2026-03-14T00:02:21.037056"
+}

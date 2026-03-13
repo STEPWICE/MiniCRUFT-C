@@ -1,0 +1,33 @@
+{
+  "file_name": "global.json",
+  "revisions": [
+    {
+      "revision_id": "02e2abf8-fe2b-4c1a-9774-db817fc0f162",
+      "metadata": {
+        "timestamp": "2026-03-14T00:08:29.473204",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 91,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:08:29.473716"
+    },
+    {
+      "revision_id": "b84e0553-c9ad-491d-80b8-aa8f3e866923",
+      "metadata": {
+        "timestamp": "2026-03-14T00:08:29.470109",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:08:29.470636"
+    }
+  ]
+}

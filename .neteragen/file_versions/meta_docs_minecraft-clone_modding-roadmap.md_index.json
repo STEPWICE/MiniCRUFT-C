@@ -1,0 +1,33 @@
+{
+  "file_name": "meta/docs/minecraft-clone/modding-roadmap.md",
+  "revisions": [
+    {
+      "revision_id": "a9e2a420-0204-4a43-8c0f-d8568096b3e8",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:21.156369",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 2339,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:02:21.167150"
+    },
+    {
+      "revision_id": "d69dd920-e39f-48ec-ad42-20f093604949",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:21.154031",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:02:21.155071"
+    }
+  ]
+}

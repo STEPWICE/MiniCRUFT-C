@@ -1,0 +1,16 @@
+{
+  "file_name": "src/MiniCRUFT.World/WorldMeshingScheduler.cs",
+  "revision_id": "fcc403f8-5944-47a5-b061-ca7da8c5ce8e",
+  "metadata": {
+    "timestamp": "2026-03-14T01:19:50.440916",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 893,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "namespace MiniCRUFT.World;\n\npublic sealed class WorldMeshingScheduler\n{\n    public int ProcessDirtySubchunkSnapshots(WorldHost world, int maxSubchunks = int.MaxValue)\n    {\n        ArgumentNullException.ThrowIfNull(world);\n\n        if (maxSubchunks < 0)\n        {\n            throw new ArgumentOutOfRangeException(nameof(maxSubchunks));\n        }\n\n        var processedCount = 0;\n        while (processedCount < maxSubchunks && world.TryClaimNextDirtySubchunkSnapshot(out var snapshot))\n        {\n            if (!world.TryCreateClaimedSubchunkMeshingOutput(snapshot!, SubchunkMeshing.BuildVisibleFaces(snapshot!), out var output))\n            {\n                continue;\n            }\n\n            if (!world.TryCompleteSubchunkMeshing(snapshot!, output!))\n            {\n                continue;\n            }\n\n            processedCount++;\n        }\n\n        return processedCount;\n    }\n}\n",
+  "saved_at": "2026-03-14T01:19:50.440916"
+}

@@ -1,0 +1,215 @@
+{
+  "file_name": "tests/MiniCRUFT.World.Tests/WorldHostTests.cs",
+  "revisions": [
+    {
+      "revision_id": "c46f1354-4008-44f4-bf0e-0b63998e95c4",
+      "metadata": {
+        "timestamp": "2026-03-14T01:52:56.250361",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 46795,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:52:56.251908"
+    },
+    {
+      "revision_id": "5749be5e-e659-4fa7-b32e-2471d9eff459",
+      "metadata": {
+        "timestamp": "2026-03-14T01:52:15.717476",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 46792,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:52:15.720014"
+    },
+    {
+      "revision_id": "a3f3444b-c50f-43b1-a248-2fa2fff0e22f",
+      "metadata": {
+        "timestamp": "2026-03-14T01:52:11.600478",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 46687,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:52:11.603084"
+    },
+    {
+      "revision_id": "a1906135-b9c2-4ea4-9d84-aef730a6907e",
+      "metadata": {
+        "timestamp": "2026-03-14T01:52:01.624864",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 46616,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:52:01.627445"
+    },
+    {
+      "revision_id": "59931818-cda8-46ed-9113-0853be652ab3",
+      "metadata": {
+        "timestamp": "2026-03-14T01:44:31.611181",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 44046,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:44:31.613697"
+    },
+    {
+      "revision_id": "bd83344c-c155-4445-a6c8-df67bab25678",
+      "metadata": {
+        "timestamp": "2026-03-14T01:44:26.867725",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 43710,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:44:26.869767"
+    },
+    {
+      "revision_id": "88dfef49-b97f-4006-9ea0-a5e1480d22fa",
+      "metadata": {
+        "timestamp": "2026-03-14T01:44:16.144660",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 41054,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:44:16.147176"
+    },
+    {
+      "revision_id": "3d9f36f6-8115-408b-b9d5-1e5bc467291b",
+      "metadata": {
+        "timestamp": "2026-03-14T01:38:43.188075",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 40951,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:38:43.189304"
+    },
+    {
+      "revision_id": "b2a877da-5eb8-4caf-be9c-8ec3c876fa0d",
+      "metadata": {
+        "timestamp": "2026-03-14T01:38:21.585346",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 40951,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:38:21.592848"
+    },
+    {
+      "revision_id": "0854b23e-c399-47ce-883d-bf9eb1630057",
+      "metadata": {
+        "timestamp": "2026-03-14T01:37:56.377364",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 37896,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:37:56.378623"
+    },
+    {
+      "revision_id": "39f4ec83-1564-4113-bcb9-1b20a0cc558d",
+      "metadata": {
+        "timestamp": "2026-03-14T01:32:30.946936",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 37867,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:32:30.949843"
+    },
+    {
+      "revision_id": "6a3c5d57-3311-483f-b8fe-9831ba4aba2d",
+      "metadata": {
+        "timestamp": "2026-03-14T01:25:22.637643",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 33919,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:25:22.639715"
+    },
+    {
+      "revision_id": "bd042216-5c00-42df-8ff6-ad1833775271",
+      "metadata": {
+        "timestamp": "2026-03-14T01:25:11.783522",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 33954,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": "Move code block from tests/MiniCRUFT.World.Tests/Program.cs"
+      },
+      "saved_at": "2026-03-14T01:25:11.784527"
+    },
+    {
+      "revision_id": "cd577f42-f516-4e0e-b261-f377ca1ec7f1",
+      "metadata": {
+        "timestamp": "2026-03-14T01:25:08.599538",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 34,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:25:08.604657"
+    },
+    {
+      "revision_id": "e0e25e6e-cd21-4c0c-99b5-69ac5b28f2b7",
+      "metadata": {
+        "timestamp": "2026-03-14T01:25:08.593906",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T01:25:08.594416"
+    }
+  ]
+}

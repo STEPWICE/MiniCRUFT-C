@@ -1,0 +1,33 @@
+{
+  "file_name": "meta/docs/minecraft-clone/save-system.md",
+  "revisions": [
+    {
+      "revision_id": "d745df96-7b9f-43b4-a634-45c768301057",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:21.030716",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 3520,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:02:21.037056"
+    },
+    {
+      "revision_id": "fe24e56b-4165-49f7-8a65-f63247996a64",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:21.022567",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:02:21.027927"
+    }
+  ]
+}

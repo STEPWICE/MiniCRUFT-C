@@ -1,0 +1,75 @@
+{
+  "file_name": "tests/MiniCRUFT.World.Tests/MiniCRUFT.World.Tests.csproj",
+  "revisions": [
+    {
+      "revision_id": "694254f4-6697-4ff6-8953-551c7919a745",
+      "metadata": {
+        "timestamp": "2026-03-14T01:37:50.154038",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1072,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:37:50.155068"
+    },
+    {
+      "revision_id": "2dd50b29-86d9-4eec-a35c-adff8fb496f6",
+      "metadata": {
+        "timestamp": "2026-03-14T01:25:22.638684",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 976,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:25:22.639193"
+    },
+    {
+      "revision_id": "072821fe-3f1c-4a4a-b000-7f4bb2c71474",
+      "metadata": {
+        "timestamp": "2026-03-14T01:20:30.006321",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 936,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:20:30.007362"
+    },
+    {
+      "revision_id": "7dafeecc-8460-4982-a3d7-e30fe2bcf914",
+      "metadata": {
+        "timestamp": "2026-03-14T01:14:47.283589",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 447,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T01:14:47.285141"
+    },
+    {
+      "revision_id": "c231a8b3-4e6a-49d6-a897-3d2b71b28bd0",
+      "metadata": {
+        "timestamp": "2026-03-14T01:14:47.281002",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 355,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T01:14:47.281522"
+    }
+  ]
+}

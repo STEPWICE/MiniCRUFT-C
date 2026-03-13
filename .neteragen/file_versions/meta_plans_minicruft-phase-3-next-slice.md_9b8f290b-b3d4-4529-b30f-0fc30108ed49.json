@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/plans/minicruft-phase-3-next-slice.md",
+  "revision_id": "9b8f290b-b3d4-4529-b30f-0fc30108ed49",
+  "metadata": {
+    "timestamp": "2026-03-14T01:39:12.680379",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 2320,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "---\nSECTION_ID: plans.minicruft-phase-3-next-slice\nTYPE: plan\nSTATUS: completed\nPRIORITY: high\n---\n\n# MiniCRUFT Phase 3 Next Slice\n\nGOAL: Implement the next smallest useful slice after renderer upload lifecycle while keeping boundaries clean and avoiding rewrite risk.\nTIMELINE: current session\n\n## Decision\n- Pick **minimal save/load seam** next.\n- Reason: it closes an earlier roadmap gap (`save/load scaffold`) with a contained cross-project slice and does not bloat renderer/world upload ownership.\n\n## Ownership Split\n- `MiniCRUFT.World`: expose the smallest serializable world snapshot/export-import seam\n- `MiniCRUFT.Persistence`: own save/load formatting and file/path concerns\n- `MiniCRUFT.App` or `MiniCRUFT.Game`: tiny wiring only if required\n- `MiniCRUFT.Rendering`: no changes unless a test dependency requires existing flow only\n\n## Active Session Progress\n- [x] Define the minimal save/load seam and file targets\n- [x] Implement world export/import seam with smallest safe surface\n- [x] Implement persistence-side roundtrip scaffold\n- [x] Add focused roundtrip tests\n- [x] Run focused tests and update checkpoint\n\n## Current Checkpoint\n- `WorldHost` now exposes a minimal snapshot seam: `ExportSnapshot()` + `ImportSnapshot(...)` for seed plus loaded chunk voxel/state data only.\n- Imported subchunks intentionally come back dirty/`NeedsBuild` so persistence restores runtime voxel state without pulling renderer upload state into the contract.\n- `PersistenceHost` now owns the JSON/file scaffold via `SaveWorldToJson(...)`, `SaveWorld(...)`, `LoadWorldFromJson(...)`, and `LoadWorld(...)`.\n- Focused xUnit coverage now proves direct snapshot roundtrip and persistence JSON/file roundtrip for seed + chunk/block state.\n- `dotnet test tests/MiniCRUFT.World.Tests/MiniCRUFT.World.Tests.csproj` passes with 27 tests.\n\n## Likely File Targets\n- `src/MiniCRUFT.World/WorldHost.cs`\n- `src/MiniCRUFT.Persistence/PersistenceHost.cs`\n- maybe one tiny new persistence/world DTO file if needed\n- `tests/MiniCRUFT.World.Tests/WorldHostTests.cs`\n\n## Success Criteria\n- world seed + changed/generated chunk state can roundtrip through persistence scaffold\n- boundaries stay clean: persistence owns storage/format, world owns runtime state\n- no renderer coupling is introduced\n- focused tests prove roundtrip correctness\n",
+  "saved_at": "2026-03-14T01:39:12.680905"
+}

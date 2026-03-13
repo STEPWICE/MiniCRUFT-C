@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/plans/minicruft-world-core-phase-2.md",
+  "revision_id": "a71287b5-4943-486c-83f8-85758fb23226",
+  "metadata": {
+    "timestamp": "2026-03-14T00:24:34.186117",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1672,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "---\nSECTION_ID: plans.minicruft-world-core-phase-2\nTYPE: plan\nSTATUS: in_progress\nPRIORITY: high\n---\n\n# MiniCRUFT World Core Phase 2\n\nGOAL: Implement the smallest useful world-core slice in `MiniCRUFT.World` that establishes deterministic chunk data, subchunk storage, coordinate helpers, and chunk retrieval from `WorldHost`.\nTIMELINE: current session\n\n## Task Checklist\n\n### Phase 1: Model boundaries\n- [*] Confirm exact minimal world-core file set\n- [ ] Confirm safe interfaces for `Game -> World`\n\n### Phase 2: World data model\n- [ ] Add `BlockId` baseline\n- [ ] Add chunk coordinate and local block coordinate helpers\n- [ ] Add dense `Subchunk` storage\n- [ ] Add `Chunk` with 8 subchunks\n- [ ] Add `ChunkState` enum\n\n### Phase 3: World behavior\n- [ ] Add deterministic simple generator\n- [ ] Add `WorldHost.GetOrCreateChunk(x, z)`\n- [ ] Add basic world counters/debug-friendly state\n\n### Phase 4: Validation\n- [ ] Validate same seed => same chunk contents\n- [ ] Validate chunk dimensions/constants usage stays correct\n- [ ] Update next-step backlog\n\n## Decisions\n- Keep the slice inside `MiniCRUFT.World` only unless a tiny `Game` touch is required\n- Prefer flat/simple deterministic terrain first; avoid caves/features for now\n- Dense storage first, no palette compression yet\n- Preserve `16x16x128` chunk and `16x16x16` subchunk boundaries\n\n## Owners\n- Cody: implementation\n- Archy: boundary review\n\n## Success Criteria\n- [ ] World data model exists and compiles\n- [ ] `WorldHost` can return deterministic chunk instances by coordinate\n- [ ] No renderer/persistence coupling is introduced\n- [ ] The result is a clean base for later meshing/streaming/save-load work\n",
+  "saved_at": "2026-03-14T00:24:34.186117"
+}

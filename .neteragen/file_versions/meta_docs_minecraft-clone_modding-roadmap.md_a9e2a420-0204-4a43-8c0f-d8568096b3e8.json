@@ -1,0 +1,16 @@
+{
+  "file_name": "meta/docs/minecraft-clone/modding-roadmap.md",
+  "revision_id": "a9e2a420-0204-4a43-8c0f-d8568096b3e8",
+  "metadata": {
+    "timestamp": "2026-03-14T00:02:21.156369",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 2339,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Many",
+    "description": ""
+  },
+  "content": "---\nSECTION_ID: docs.minecraft-clone.modding-roadmap\nTYPE: note\n---\n\n# Modding Roadmap\n\n## Goal\nDo **not** build full modding at launch, but avoid shutting the door on it. Prioritize a stable data-driven foundation first.\n\n## Principle\nShip a solid game first. Add modding in layers:\n1. data overrides\n2. content packs\n3. scripting/hooks\n4. advanced API only if justified\n\n## Phase 0 — Mod-Friendly Foundations\nDo now:\n- stable ids for blocks/items/entities\n- data-driven registries where practical\n- externalized localization\n- externalized block/item definitions where feasible\n- avoid gameplay constants scattered across code\n\n## Phase 1 — Resource / Data Packs\nLowest-risk early mod support:\n- textures\n- audio replacements\n- localization packs\n- UI style tweaks if safe\n- configurable gameplay data for non-code content\n\nGood first targets:\n- block definitions\n- item definitions\n- recipes\n- loot tables later\n- biome parameters later\n\n## Phase 2 — Scripted Extension Layer\nOnly after core gameplay stabilizes.\n\nPotential scope:\n- simple scripted events\n- custom items/blocks with limited behavior\n- worldgen parameter mods\n- UI additions in restricted zones\n\nRequirements first:\n- sandboxing\n- versioned API\n- error isolation\n- mod load order rules\n\n## Phase 3 — Full Mod API\nOnly if community demand justifies cost.\n\nWould require:\n- supported lifecycle hooks\n- server/client authority rules\n- serialization contract\n- compatibility policy\n- tooling/docs/examples\n\n## Non-Goals for Early Versions\n- arbitrary native code plugins\n- unrestricted runtime patching\n- guaranteed compatibility across fast-changing builds\n- complex mod networking sync in first co-op releases\n\n## Recommended Technical Direction\n- keep engine systems internal\n- expose data formats before exposing code hooks\n- prefer declarative mod content over imperative scripts\n- version registries and asset paths clearly\n\n## Risks\n- freezing internal architecture too early\n- maintaining unstable public API\n- save compatibility problems\n- security/stability issues from unrestricted code mods\n\n## Acceptance Criteria for Starting Real Mod Support\n- ids and registries are stable\n- save format is versioned\n- content loading pipeline is data-driven\n- localization/assets are already externalized\n- internal gameplay systems are no longer being rewritten every week\n",
+  "saved_at": "2026-03-14T00:02:21.156369"
+}

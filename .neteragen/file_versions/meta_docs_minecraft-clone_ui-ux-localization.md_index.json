@@ -1,0 +1,33 @@
+{
+  "file_name": "meta/docs/minecraft-clone/ui-ux-localization.md",
+  "revisions": [
+    {
+      "revision_id": "c17bb7e2-39d4-46b0-ac86-4b9b46de17fa",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:21.038723",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 3094,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T00:02:21.045046"
+    },
+    {
+      "revision_id": "bbd990ed-0204-4cab-9c4b-4a404745aefa",
+      "metadata": {
+        "timestamp": "2026-03-14T00:02:21.023875",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Many",
+        "description": null
+      },
+      "saved_at": "2026-03-14T00:02:21.029708"
+    }
+  ]
+}
