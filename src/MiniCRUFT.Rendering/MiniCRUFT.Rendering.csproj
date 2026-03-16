@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>MiniCRUFT.Rendering</RootNamespace>
-    <AssemblyName>MiniCRUFT.Rendering</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MiniCRUFT.World\MiniCRUFT.World.csproj" />
-  </ItemGroup>
-</Project>

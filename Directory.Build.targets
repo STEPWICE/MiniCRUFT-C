@@ -1,9 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <Product>MiniCRUFT</Product>
-    <Version>0.1.0-alpha</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <FileVersion>0.1.0.0</FileVersion>
-    <InformationalVersion>0.1 Alpha</InformationalVersion>
-  </PropertyGroup>
-</Project>

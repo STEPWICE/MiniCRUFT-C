@@ -1,69 +1,130 @@
+using System;
+
 namespace MiniCRUFT.World;
 
 public sealed class Chunk
 {
-    private readonly Subchunk[] _subchunks = new Subchunk[ChunkConstants.SubchunkCountPerChunk];
+    public const int SizeX = 16;
+    public const int SizeZ = 16;
+    public const int SizeY = 256;
 
-    public Chunk(ChunkCoordinate coordinate)
+    public readonly BlockId[] Blocks;
+    public readonly byte[] SkyLight;
+    public readonly byte[] TorchLight;
+    public readonly BiomeId[] Biomes;
+
+    public readonly int ChunkX;
+    public readonly int ChunkZ;
+
+    public bool IsDirty { get; private set; } = true;
+    public bool LightingDirty { get; private set; } = true;
+    public bool SaveDirty { get; private set; } = true;
+
+    public object SyncRoot { get; } = new();
+
+    public Chunk(int chunkX, int chunkZ)
     {
-        Coordinate = coordinate;
+        ChunkX = chunkX;
+        ChunkZ = chunkZ;
+        Blocks = new BlockId[SizeX * SizeY * SizeZ];
+        SkyLight = new byte[Blocks.Length];
+        TorchLight = new byte[Blocks.Length];
+        Biomes = new BiomeId[SizeX * SizeZ];
+    }
 
-        for (var i = 0; i < _subchunks.Length; i++)
+    public void MarkDirty() => IsDirty = true;
+    public void ClearDirty() => IsDirty = false;
+    public void MarkLightingDirty() => LightingDirty = true;
+    public void ClearLightingDirty() => LightingDirty = false;
+    public void MarkSaveDirty() => SaveDirty = true;
+    public void ClearSaveDirty() => SaveDirty = false;
+
+    public static int GetIndex(int x, int y, int z)
+    {
+        return x + (z * SizeX) + (y * SizeX * SizeZ);
+    }
+
+    public static int GetBiomeIndex(int x, int z) => x + z * SizeX;
+
+    public BlockId GetBlock(int x, int y, int z)
+    {
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ || y < 0 || y >= SizeY)
         {
-            _subchunks[i] = new Subchunk();
+            return BlockId.Air;
         }
+
+        return Blocks[GetIndex(x, y, z)];
     }
 
-    public ChunkCoordinate Coordinate { get; }
-    public ChunkState State { get; internal set; } = ChunkState.Unloaded;
-    public IReadOnlyList<Subchunk> Subchunks => _subchunks;
-
-    public Subchunk GetSubchunk(int subchunkIndex)
+    public void SetBlock(int x, int y, int z, BlockId id)
     {
-        if ((uint)subchunkIndex >= _subchunks.Length)
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ || y < 0 || y >= SizeY)
         {
-            throw new ArgumentOutOfRangeException(nameof(subchunkIndex));
+            return;
         }
 
-        return _subchunks[subchunkIndex];
+        Blocks[GetIndex(x, y, z)] = id;
+        IsDirty = true;
+        SaveDirty = true;
     }
 
-    public BlockId GetBlock(LocalBlockCoordinate localCoordinate)
+    public byte GetSkyLight(int x, int y, int z)
     {
-        return GetSubchunk(localCoordinate.SubchunkIndex).GetBlock(
-            localCoordinate.X,
-            localCoordinate.SubchunkLocalY,
-            localCoordinate.Z);
-    }
-
-    public void SetBlock(LocalBlockCoordinate localCoordinate, BlockId blockId)
-    {
-        GetSubchunk(localCoordinate.SubchunkIndex).SetBlock(
-            localCoordinate.X,
-            localCoordinate.SubchunkLocalY,
-            localCoordinate.Z,
-            blockId);
-    }
-
-    public void MarkSubchunkDirty(int subchunkIndex)
-    {
-        GetSubchunk(subchunkIndex).MarkDirty();
-    }
-
-    public int DirtySubchunkCount
-    {
-        get
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ || y < 0 || y >= SizeY)
         {
-            var count = 0;
-            foreach (var subchunk in _subchunks)
-            {
-                if (subchunk.IsDirty)
-                {
-                    count++;
-                }
-            }
-
-            return count;
+            return 0;
         }
+
+        return SkyLight[GetIndex(x, y, z)];
+    }
+
+    public byte GetTorchLight(int x, int y, int z)
+    {
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ || y < 0 || y >= SizeY)
+        {
+            return 0;
+        }
+
+        return TorchLight[GetIndex(x, y, z)];
+    }
+
+    public void SetSkyLight(int x, int y, int z, byte value)
+    {
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ || y < 0 || y >= SizeY)
+        {
+            return;
+        }
+
+        SkyLight[GetIndex(x, y, z)] = value;
+    }
+
+    public void SetTorchLight(int x, int y, int z, byte value)
+    {
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ || y < 0 || y >= SizeY)
+        {
+            return;
+        }
+
+        TorchLight[GetIndex(x, y, z)] = value;
+    }
+
+    public void SetBiome(int x, int z, BiomeId biome)
+    {
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ)
+        {
+            return;
+        }
+
+        Biomes[GetBiomeIndex(x, z)] = biome;
+    }
+
+    public BiomeId GetBiome(int x, int z)
+    {
+        if (x < 0 || x >= SizeX || z < 0 || z >= SizeZ)
+        {
+            return BiomeId.Plains;
+        }
+
+        return Biomes[GetBiomeIndex(x, z)];
     }
 }

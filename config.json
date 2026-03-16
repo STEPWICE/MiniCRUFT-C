@@ -1,0 +1,155 @@
+{
+  "ChunkRadius": 8,
+  "VSync": true,
+  "Fullscreen": false,
+  "WindowWidth": 1280,
+  "WindowHeight": 720,
+  "Seed": 1337,
+  "AssetsPath": "assets",
+  "WorldPath": "world",
+  "Language": "ru",
+  "FieldOfView": 75,
+  "MouseSensitivity": 0.12,
+  "PlayerSpeed": 6,
+  "ShowDebug": false,
+  "ResetWorldOnLaunch": false,
+  "ChunkPreloadExtra": 1,
+  "Physics": {
+    "PlayerWidth": 0.6,
+    "PlayerHeight": 1.8,
+    "EyeHeight": 1.6,
+    "Gravity": -20,
+    "JumpVelocity": 7.5,
+    "SprintMultiplier": 1.5
+  },
+  "DayNight": {
+    "DayLengthSeconds": 900,
+    "StartTimeOfDay": 0.25,
+    "MinSunIntensity": 0.05
+  },
+  "Weather": {
+    "ToggleIntervalSeconds": 120,
+    "ToggleChance": 0.2,
+    "RainDarkenR": 0.7,
+    "RainDarkenG": 0.7,
+    "RainDarkenB": 0.75
+  },
+  "Audio": {
+    "Enabled": true,
+    "MaxActive": 16,
+    "DigVolume": 0.85,
+    "PlaceVolume": 0.6
+  },
+  "Save": {
+    "EnableAutoSave": true,
+    "AutoSaveIntervalSeconds": 30,
+    "SaveWorkers": 1,
+    "UnloadExtraRadius": 2
+  },
+  "Spawn": {
+    "Mode": "AnyNonRiver",
+    "SearchRadius": 2048,
+    "MaxAttempts": 256,
+    "MinHeightAboveSea": 3,
+    "MaxSlope": 7,
+    "ExcludedBiomes": [
+      "River"
+    ]
+  },
+  "Render": {
+    "Anisotropy": 4,
+    "UseMipmaps": true,
+    "CutoutAlphaThreshold": 0.35,
+    "FogStart": 120,
+    "FogEnd": 420,
+    "LinearFog": true,
+    "AmbientOcclusionMin": 0.6,
+    "AmbientOcclusionStrength": 1,
+    "BiomeTintStrength": 0.45,
+    "MinLight": 0.2,
+    "SunLightMin": 0.3,
+    "MaxMeshUploadsPerFrame": 4,
+    "Fog": {
+      "HorizonBlendStrength": 0.35,
+      "HorizonBlendPower": 1.2
+    },
+    "Foliage": {
+      "TintStrength": 0.35,
+      "CutoutAlphaThreshold": 0.33,
+      "DitherStrength": 0.2,
+      "DitherScale": 6
+    },
+    "Lod": {
+      "Enabled": true,
+      "StartDistance": 160,
+      "EndDistance": 520,
+      "Step": 8,
+      "ColorFogBlend": 0.25
+    }
+  },
+  "Atmosphere": {
+    "CloudHeight": 160,
+    "CloudSpeed": 0.003,
+    "CloudTiling": 4,
+    "CloudOpacity": 0.3,
+    "CloudRadius": 320,
+    "CloudCellSize": 24,
+    "SunSize": 40,
+    "MoonSize": 36,
+    "WaterOpacity": 0.55,
+    "WaterUvSpeed": 0.02,
+    "WaterTint": {
+      "R": 0.08,
+      "G": 0.18,
+      "B": 0.28
+    },
+    "SkyDayTop": {
+      "R": 0.45,
+      "G": 0.67,
+      "B": 1
+    },
+    "SkyDayBottom": {
+      "R": 0.78,
+      "G": 0.9,
+      "B": 1
+    },
+    "SkyNightTop": {
+      "R": 0.03,
+      "G": 0.04,
+      "B": 0.08
+    },
+    "SkyNightBottom": {
+      "R": 0.02,
+      "G": 0.03,
+      "B": 0.06
+    }
+  },
+  "Ui": {
+    "HudScale": 1,
+    "HotbarYOffset": 16,
+    "HeartsYOffset": 6,
+    "HeartsXOffset": 0
+  },
+  "WorldGen": {
+    "BaseHeight": 54,
+    "SeaLevel": 62,
+    "ContinentalAmplitude": 60,
+    "PeakAmplitude": 42,
+    "ErosionAmplitude": 22,
+    "RidgeAmplitude": 28,
+    "RiverThreshold": 0.045,
+    "CaveThreshold": 0.63,
+    "TreeChance": 0.06,
+    "LargeTreeChance": 0.12,
+    "LargeTreeMinHeight": 8,
+    "LargeTreeMaxHeight": 12,
+    "LargeTreeLeafRadius": 4,
+    "LargeTreeCanopyDepth": 4,
+    "TreeMaxSlope": 7,
+    "ForcedBiome": "Desert",
+    "CliffSlopeThreshold": 10,
+    "CliffSmoothStrength": 0.35,
+    "RidgeClamp": 0.85,
+    "BeachSize": 3
+  }
+}
