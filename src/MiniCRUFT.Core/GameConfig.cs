@@ -11,6 +11,10 @@ public sealed class GameConfig
     private const int MaxFireUpdatesPerFrame = 256;
     private const int MaxFireEventQueue = 4096;
     private const int MaxFireExplosionIgnitedBlocks = 256;
+    public const float MinFieldOfView = 30f;
+    public const float MaxFieldOfView = 110f;
+    public const float MinMouseSensitivity = 0.01f;
+    public const float MaxMouseSensitivity = 1f;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -137,6 +141,9 @@ public sealed class GameConfig
         Render.Lod ??= new LodConfig();
         Particles ??= new ParticleConfig();
         WorldGen.StrictBetaMode = StrictBetaMode;
+
+        FieldOfView = Math.Clamp(FieldOfView, MinFieldOfView, MaxFieldOfView);
+        MouseSensitivity = Math.Clamp(MouseSensitivity, MinMouseSensitivity, MaxMouseSensitivity);
 
         if (StrictBetaMode)
         {

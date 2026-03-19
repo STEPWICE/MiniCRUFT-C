@@ -170,7 +170,7 @@ float4 main(PSInput input) : SV_Target
             AddHotbarCounts(width, height, hud, textScale);
         }
 
-        if (!hud.InventoryOpen && !hud.StrictBetaMode && !string.IsNullOrWhiteSpace(hud.SelectedItemName))
+        if (!hud.InventoryOpen && string.IsNullOrWhiteSpace(hud.MenuText) && !hud.StrictBetaMode && !string.IsNullOrWhiteSpace(hud.SelectedItemName))
         {
             int fontSize = ResolveFontSize(_uiConfig.ItemNameFontSize, textScale, min: 12, max: 28);
             var font = _fontSystem.GetFont(fontSize);
@@ -241,7 +241,7 @@ float4 main(PSInput input) : SV_Target
             topTextY += progressionSize.Y + margin * 0.35f;
         }
 
-        if (!string.IsNullOrWhiteSpace(hud.DebugText))
+        if (string.IsNullOrWhiteSpace(hud.MenuText) && !string.IsNullOrWhiteSpace(hud.DebugText))
         {
             int fontSize = ResolveFontSize(_uiConfig.DebugFontSize, textScale, min: 10, max: 24);
             var font = _fontSystem.GetFont(fontSize);

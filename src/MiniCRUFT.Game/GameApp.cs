@@ -61,6 +61,7 @@ public sealed class GameApp : IDisposable
     private bool _showBiomeMenu;
     private int _biomeMenuIndex;
     private bool _showSeedMenu;
+    private bool _showSettingsMenu;
     private string _seedInput = string.Empty;
     private bool _inventoryOpen;
     private bool _pendingRegen;
@@ -70,6 +71,8 @@ public sealed class GameApp : IDisposable
     private Vector3 _spawnPosition;
     private float _timeSeconds;
     private bool _paused;
+    private int _pauseMenuIndex;
+    private int _settingsMenuIndex;
     private bool _showDebug;
     private float _fpsTimer;
     private int _fpsFrames;
@@ -79,6 +82,8 @@ public sealed class GameApp : IDisposable
     private string _herobrineToastText = string.Empty;
     private float _statusToastTimer;
     private string _statusToastText = string.Empty;
+    private const float MouseSensitivityStep = 0.01f;
+    private const float FieldOfViewStep = 5f;
 
     private bool _leftHandled;
     private bool _rightHandled;
@@ -163,6 +168,25 @@ public sealed class GameApp : IDisposable
                 return;
             }
 
+            if (_showSettingsMenu)
+            {
+                if (_config.StrictBetaMode)
+                {
+                    _showSettingsMenu = false;
+                    SyncCursorState();
+                    return;
+                }
+
+                HandleSettingsMenuKey(key);
+                return;
+            }
+
+            if (_paused)
+            {
+                HandlePauseMenuKey(key);
+                return;
+            }
+
             if (_inventoryOpen)
             {
                 if (key.Key == Key.Escape || key.Key == Key.E)
@@ -205,7 +229,14 @@ public sealed class GameApp : IDisposable
 
             if (key.Key == Key.Escape)
             {
-                _exitRequested = true;
+                if (_paused)
+                {
+                    TogglePause();
+                }
+                else
+                {
+                    _exitRequested = true;
+                }
             }
             else if (!_config.StrictBetaMode && key.Key == Key.Tab)
             {
@@ -452,6 +483,7 @@ public sealed class GameApp : IDisposable
             _renderDevice.ResizeIfNeeded();
 
             bool simulate = !_paused && !_showBiomeMenu && !_showSeedMenu && !_inventoryOpen;
+            simulate = simulate && !_showSettingsMenu;
             if (simulate)
             {
                 _dayNight.Update(dt);
@@ -529,6 +561,7 @@ public sealed class GameApp : IDisposable
                 _selectionState = SelectionState.None;
                 _session.ChunkManager.ProcessChanges(_changeQueue, _saveQueue, _session.FallingBlocks, _session.Fluids, _session.FireSystem, _session.TntSystem);
                 _session.Renderer.UpdateMeshes();
+                SyncCameraToPlayer();
             }
 
             if (_inventory.SelectedIndex != _lastSelectedSlot)
@@ -564,8 +597,8 @@ public sealed class GameApp : IDisposable
             _hud.InventoryItems = _inventoryItems;
             _hud.ProgressionMilestonesText = BuildProgressionMilestonesText();
             _hud.DebugText = _showDebug ? BuildDebugText() : string.Empty;
-            _hud.MenuText = _showBiomeMenu ? BuildBiomeMenuText() : _showSeedMenu ? BuildSeedMenuText() : _inventoryOpen ? BuildInventoryMenuText() : _paused ? BuildPauseMenuText() : string.Empty;
-            _hud.HerobrineStatusText = BuildHerobrineStatusText();
+        _hud.MenuText = _showBiomeMenu ? BuildBiomeMenuText() : _showSeedMenu ? BuildSeedMenuText() : _showSettingsMenu ? BuildSettingsMenuText() : _inventoryOpen ? BuildInventoryMenuText() : _paused ? BuildPauseMenuText() : string.Empty;
+            _hud.HerobrineStatusText = (_paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen) ? string.Empty : BuildHerobrineStatusText();
             _hud.HerobrineToastText = _herobrineToastTimer > 0f ? _herobrineToastText : string.Empty;
             _hud.ProgressionText = BuildProgressionText();
             _hud.SelectedItemName = (_inventoryOpen || _itemNameTimer <= 0f) ? string.Empty : BuildSelectedItemName();
@@ -649,7 +682,7 @@ public sealed class GameApp : IDisposable
 
     private string BuildProgressionText()
     {
-        if (_config.StrictBetaMode || _paused || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
+        if (_config.StrictBetaMode || _paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
         {
             return string.Empty;
         }
@@ -659,7 +692,7 @@ public sealed class GameApp : IDisposable
 
     private string BuildProgressionMilestonesText()
     {
-        if (_config.StrictBetaMode || _paused || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
+        if (_config.StrictBetaMode || _paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
         {
             return string.Empty;
         }
@@ -997,14 +1030,17 @@ public sealed class GameApp : IDisposable
 
     private string BuildPauseMenuText()
     {
-        var modeProfile = HerobrineModeCatalog.Get(_config.Herobrine.Mode);
-        return HerobrineHudText.BuildPauseMenuText(
-            _config.Herobrine.Enabled,
-            modeProfile.Name,
-            modeProfile.Description,
-            _herobrine.IsManifested,
-            _herobrine.HauntPressure,
-            controlsAvailable: !_config.StrictBetaMode);
+        return PauseHudText.BuildPauseMenuText(_pauseMenuIndex);
+    }
+
+    private string BuildSettingsMenuText()
+    {
+        return PauseHudText.BuildSettingsMenuText(
+            _settingsMenuIndex,
+            _renderDevice.Window.WindowState == WindowState.BorderlessFullScreen || _renderDevice.Window.WindowState == WindowState.FullScreen,
+            _config.FieldOfView,
+            _config.MouseSensitivity,
+            _showDebug);
     }
 
     private string BuildInventoryMenuText()
@@ -1481,6 +1517,7 @@ public sealed class GameApp : IDisposable
 
         _showBiomeMenu = false;
         _showSeedMenu = false;
+        _showSettingsMenu = false;
         _paused = false;
         _pendingRegen = false;
 
@@ -1758,8 +1795,194 @@ public sealed class GameApp : IDisposable
             return;
         }
 
+        _showSettingsMenu = false;
         _paused = !_paused;
+        if (_paused)
+        {
+            _pauseMenuIndex = 0;
+        }
+
         SyncCursorState();
+    }
+
+    private void OpenSettingsMenu()
+    {
+        if (_config.StrictBetaMode)
+        {
+            return;
+        }
+
+        _paused = true;
+        _showSettingsMenu = true;
+        _settingsMenuIndex = 0;
+        SyncCursorState();
+    }
+
+    private void CloseSettingsMenu()
+    {
+        _showSettingsMenu = false;
+        SyncCursorState();
+    }
+
+    private void HandlePauseMenuKey(KeyEvent key)
+    {
+        if (_config.StrictBetaMode)
+        {
+            _paused = false;
+            SyncCursorState();
+            return;
+        }
+
+        switch (key.Key)
+        {
+            case Key.Up:
+            case Key.Left:
+                StepPauseMenu(-1);
+                break;
+            case Key.Down:
+            case Key.Right:
+                StepPauseMenu(1);
+                break;
+            case Key.Enter:
+            case Key.Space:
+                ActivatePauseMenuSelection();
+                break;
+            case Key.Escape:
+            case Key.Tab:
+                TogglePause();
+                break;
+            case Key.F3:
+                ToggleDebugHud();
+                break;
+            case Key.F11:
+                ToggleFullscreen();
+                break;
+        }
+    }
+
+    private void HandleSettingsMenuKey(KeyEvent key)
+    {
+        if (_config.StrictBetaMode)
+        {
+            _showSettingsMenu = false;
+            SyncCursorState();
+            return;
+        }
+
+        switch (key.Key)
+        {
+            case Key.Up:
+                StepSettingsMenu(-1);
+                break;
+            case Key.Down:
+                StepSettingsMenu(1);
+                break;
+            case Key.Left:
+                AdjustSelectedSetting(-1);
+                break;
+            case Key.Right:
+                AdjustSelectedSetting(1);
+                break;
+            case Key.Enter:
+            case Key.Space:
+                ActivateSettingsMenuSelection();
+                break;
+            case Key.Escape:
+                CloseSettingsMenu();
+                break;
+            case Key.Tab:
+                TogglePause();
+                break;
+            case Key.F3:
+                ToggleDebugHud();
+                break;
+            case Key.F11:
+                ToggleFullscreen();
+                break;
+        }
+    }
+
+    private void ActivatePauseMenuSelection()
+    {
+        switch (_pauseMenuIndex)
+        {
+            case 0:
+                TogglePause();
+                break;
+            case 1:
+                OpenSettingsMenu();
+                break;
+            case 2:
+                _exitRequested = true;
+                break;
+        }
+    }
+
+    private void ActivateSettingsMenuSelection()
+    {
+        switch (_settingsMenuIndex)
+        {
+            case 0:
+                ToggleFullscreen();
+                break;
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                ToggleDebugHud();
+                break;
+            case 4:
+                break;
+        }
+    }
+
+    private void AdjustSelectedSetting(int delta)
+    {
+        switch (_settingsMenuIndex)
+        {
+            case 0:
+                ToggleFullscreen();
+                break;
+            case 1:
+                AdjustFieldOfView(delta * FieldOfViewStep);
+                break;
+            case 2:
+                AdjustMouseSensitivity(delta * MouseSensitivityStep);
+                break;
+            case 3:
+                ToggleDebugHud();
+                break;
+            case 4:
+                CloseSettingsMenu();
+                break;
+        }
+    }
+
+    private void StepPauseMenu(int delta)
+    {
+        _pauseMenuIndex = StepMenuIndex(_pauseMenuIndex, 3, delta);
+    }
+
+    private void StepSettingsMenu(int delta)
+    {
+        _settingsMenuIndex = StepMenuIndex(_settingsMenuIndex, 5, delta);
+    }
+
+    private static int StepMenuIndex(int index, int count, int delta)
+    {
+        if (count <= 0)
+        {
+            return 0;
+        }
+
+        int next = (index + delta) % count;
+        if (next < 0)
+        {
+            next += count;
+        }
+
+        return next;
     }
 
     private void ToggleHerobrine()
@@ -1786,7 +2009,7 @@ public sealed class GameApp : IDisposable
 
     private void SyncCursorState()
     {
-        bool uiOpen = _paused || _showBiomeMenu || _showSeedMenu || _inventoryOpen;
+        bool uiOpen = _paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen;
         _renderDevice.Window.CursorVisible = uiOpen;
         SetMouseMode(captured: !uiOpen, relative: !uiOpen);
         _inputHandler.SetRelative(!uiOpen);
@@ -1797,7 +2020,8 @@ public sealed class GameApp : IDisposable
     private void ToggleFullscreen()
     {
         var window = _renderDevice.Window;
-        if (window.WindowState == WindowState.BorderlessFullScreen)
+        bool fullscreen = window.WindowState == WindowState.BorderlessFullScreen || window.WindowState == WindowState.FullScreen;
+        if (fullscreen)
         {
             window.WindowState = WindowState.Normal;
         }
@@ -1805,6 +2029,48 @@ public sealed class GameApp : IDisposable
         {
             window.WindowState = WindowState.BorderlessFullScreen;
         }
+
+        SetStatusToast(fullscreen ? "Fullscreen disabled" : "Fullscreen enabled", 1.5f);
+        SaveConfig();
+    }
+
+    private void ToggleDebugHud()
+    {
+        if (_config.StrictBetaMode)
+        {
+            return;
+        }
+
+        _showDebug = !_showDebug;
+        _config.ShowDebug = _showDebug;
+        SetStatusToast(_showDebug ? "Debug HUD enabled" : "Debug HUD disabled", 1.5f);
+        SaveConfig();
+    }
+
+    private void AdjustFieldOfView(float delta)
+    {
+        float next = Math.Clamp(_config.FieldOfView + delta, GameConfig.MinFieldOfView, GameConfig.MaxFieldOfView);
+        if (Math.Abs(next - _config.FieldOfView) < 0.001f)
+        {
+            return;
+        }
+
+        _config.FieldOfView = next;
+        SetStatusToast($"Field of view: {next:0} deg", 1.5f);
+        SaveConfig();
+    }
+
+    private void AdjustMouseSensitivity(float delta)
+    {
+        float next = Math.Clamp(_config.MouseSensitivity + delta, GameConfig.MinMouseSensitivity, GameConfig.MaxMouseSensitivity);
+        if (Math.Abs(next - _config.MouseSensitivity) < 0.0001f)
+        {
+            return;
+        }
+
+        _config.MouseSensitivity = next;
+        SetStatusToast($"Mouse sensitivity: {next:0.00}", 1.5f);
+        SaveConfig();
     }
 
     private void SetMouseMode(bool captured, bool relative)
@@ -2056,7 +2322,7 @@ public sealed class GameApp : IDisposable
 
     private FirstPersonRenderState BuildFirstPersonRenderState()
     {
-        bool visible = !_paused && !_showBiomeMenu && !_showSeedMenu && !_inventoryOpen;
+        bool visible = !_paused && !_showSettingsMenu && !_showBiomeMenu && !_showSeedMenu && !_inventoryOpen;
         BlockId heldBlock = _inventory.GetSelectedBlock();
         float duration = Math.Max(0.01f, _config.FirstPerson.SwingDurationSeconds);
         float swingProgress = _firstPersonSwingTimer <= 0f ? 0f : 1f - Math.Clamp(_firstPersonSwingTimer / duration, 0f, 1f);

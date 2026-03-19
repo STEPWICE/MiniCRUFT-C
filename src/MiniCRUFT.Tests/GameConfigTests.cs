@@ -188,6 +188,7 @@ public sealed class GameConfigTests
                 WindowHeight = 900,
                 Language = "en",
                 FieldOfView = 90f,
+                MouseSensitivity = 0.18f,
                 PlayerSpeed = 7.5f,
                 Physics =
                 {
@@ -474,6 +475,7 @@ public sealed class GameConfigTests
             Assert.Equal(900, loaded.WindowHeight);
             Assert.Equal("en", loaded.Language);
             Assert.Equal(90f, loaded.FieldOfView);
+            Assert.Equal(0.18f, loaded.MouseSensitivity);
             Assert.Equal(7.5f, loaded.PlayerSpeed);
             Assert.Equal(24, loaded.Physics.PlayerMaxHealth);
             Assert.Equal(1.0f, loaded.Physics.HurtCooldownSeconds);
@@ -1225,5 +1227,27 @@ public sealed class GameConfigTests
         Assert.Equal(256, config.Fire.MaxUpdatesPerFrame);
         Assert.Equal(4096, config.Fire.MaxEventQueue);
         Assert.Equal(256, config.Fire.MaxExplosionIgnitedBlocks);
+    }
+
+    [Fact]
+    public void Normalize_ClampsCameraSettingsToSupportedRange()
+    {
+        var config = new GameConfig
+        {
+            FieldOfView = 5f,
+            MouseSensitivity = 0f
+        };
+
+        config.Normalize();
+
+        Assert.Equal(GameConfig.MinFieldOfView, config.FieldOfView);
+        Assert.Equal(GameConfig.MinMouseSensitivity, config.MouseSensitivity);
+
+        config.FieldOfView = 200f;
+        config.MouseSensitivity = 2f;
+        config.Normalize();
+
+        Assert.Equal(GameConfig.MaxFieldOfView, config.FieldOfView);
+        Assert.Equal(GameConfig.MaxMouseSensitivity, config.MouseSensitivity);
     }
 }

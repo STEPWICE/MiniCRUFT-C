@@ -31,9 +31,12 @@ run.bat
 - `F3` - debug HUD
 - `F5` - biome menu
 - `F6` - seed menu
-- `Enter` - apply selection or regenerate
+- `Tab` - pause / settings menu
+- `Up / Down` - move in pause/settings menus
+- `Left / Right` - adjust values in settings
+- `Enter` - apply selection, toggle a setting, or regenerate
 - `F11` - fullscreen
-- `Esc` - close menus or exit
+- `Esc` - back out of menus, resume from pause, or exit when no menu is open
 
 ## Mobs
 - `MobSystem` handles spawning, AI, movement physics, combat, sunlight burn, water and lava interaction, damage reactions, elite variants and save/load.
