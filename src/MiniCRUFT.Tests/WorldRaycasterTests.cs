@@ -24,6 +24,7 @@ public sealed class WorldRaycasterTests
         Assert.True(result.Hit);
         Assert.Equal(new BlockCoord(2, 1, 1), result.Block);
         Assert.Equal(new BlockCoord(1, 1, 1), result.Adjacent);
+        Assert.InRange(result.Distance, 1.49f, 1.51f);
     }
 
     [Fact]
@@ -41,5 +42,6 @@ public sealed class WorldRaycasterTests
         Assert.True(result.Hit);
         Assert.Equal(new BlockCoord(0, 1, 1), result.Block);
         Assert.Equal(new BlockCoord(1, 1, 1), result.Adjacent);
+        Assert.InRange(result.Distance, 1.49f, 1.51f);
     }
 }

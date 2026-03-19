@@ -15,6 +15,8 @@ public sealed class ChunkSaveQueue : IDisposable
     private readonly ConcurrentDictionary<ChunkCoord, byte> _pending = new();
     private readonly List<Task> _workers = new();
     private readonly CancellationTokenSource _cts = new();
+    private readonly ManualResetEventSlim _drained = new(true);
+    private int _pendingCount;
 
     public ChunkSaveQueue(IChunkStorage storage, int workerCount)
     {
@@ -36,7 +38,17 @@ public sealed class ChunkSaveQueue : IDisposable
         var coord = new ChunkCoord(chunk.ChunkX, chunk.ChunkZ);
         if (_pending.TryAdd(coord, 0))
         {
-            _queue.Add(chunk);
+            IncrementPending();
+            try
+            {
+                _queue.Add(chunk);
+            }
+            catch
+            {
+                _pending.TryRemove(coord, out _);
+                DecrementPending();
+                throw;
+            }
         }
     }
 
@@ -50,56 +62,99 @@ public sealed class ChunkSaveQueue : IDisposable
 
     public void Flush()
     {
-        while (!_pending.IsEmpty)
-        {
-            Thread.Sleep(10);
-        }
+        _drained.Wait();
     }
 
     private void WorkerLoop()
     {
-        foreach (var chunk in _queue.GetConsumingEnumerable(_cts.Token))
+        try
         {
-            if (_cts.IsCancellationRequested)
+            foreach (var chunk in _queue.GetConsumingEnumerable(_cts.Token))
             {
-                break;
-            }
-
-            var coord = new ChunkCoord(chunk.ChunkX, chunk.ChunkZ);
-            try
-            {
-                lock (chunk.SyncRoot)
+                if (_cts.IsCancellationRequested)
                 {
-                    if (chunk.SaveDirty)
+                    break;
+                }
+
+                var coord = new ChunkCoord(chunk.ChunkX, chunk.ChunkZ);
+                try
+                {
+                    lock (chunk.SyncRoot)
                     {
-                        _storage.SaveChunk(chunk);
-                        chunk.ClearSaveDirty();
+                        if (chunk.SaveDirty)
+                        {
+                            _storage.SaveChunk(chunk);
+                            chunk.ClearSaveDirty();
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    Log.Warn($"Chunk save failed for {coord.X},{coord.Z}: {ex.Message}");
+                }
+                finally
+                {
+                    _pending.TryRemove(coord, out _);
+                    DecrementPending();
+                }
             }
-            catch (Exception ex)
-            {
-                Log.Warn($"Chunk save failed for {coord.X},{coord.Z}: {ex.Message}");
-            }
-            finally
-            {
-                _pending.TryRemove(coord, out _);
-            }
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 
     public void Dispose()
     {
+        Flush();
         _cts.Cancel();
         _queue.CompleteAdding();
         try
         {
-            Task.WaitAll(_workers.ToArray(), 2000);
+            WaitForWorkers(2000);
         }
         catch
         {
         }
         _cts.Dispose();
+        _drained.Dispose();
         _queue.Dispose();
+    }
+
+    private void IncrementPending()
+    {
+        if (Interlocked.Increment(ref _pendingCount) == 1)
+        {
+            _drained.Reset();
+        }
+    }
+
+    private void DecrementPending()
+    {
+        if (Interlocked.Decrement(ref _pendingCount) == 0)
+        {
+            _drained.Set();
+        }
+    }
+
+    private void WaitForWorkers(int timeoutMilliseconds)
+    {
+        long deadline = Environment.TickCount64 + timeoutMilliseconds;
+        foreach (var worker in _workers)
+        {
+            int remaining = (int)Math.Max(0, deadline - Environment.TickCount64);
+            if (remaining == 0)
+            {
+                break;
+            }
+
+            try
+            {
+                worker.Wait(remaining);
+            }
+            catch
+            {
+            }
+        }
     }
 }

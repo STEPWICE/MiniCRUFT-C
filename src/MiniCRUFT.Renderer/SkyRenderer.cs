@@ -16,6 +16,7 @@ public sealed class SkyRenderer : IDisposable
     private readonly SpriteTexture _moonTexture;
     private readonly SpriteBatch _sunBatch;
     private readonly SpriteBatch _moonBatch;
+    private readonly bool _moonUsesPhases;
 
     private readonly SkyVertex[] _quadVertices = new SkyVertex[4];
     private readonly ushort[] _quadIndices = { 0, 1, 2, 0, 2, 3 };
@@ -40,7 +41,8 @@ public sealed class SkyRenderer : IDisposable
         _pipeline = device.ResourceFactory.CreateGraphicsPipeline(pipelineDescription);
 
         _sunTexture = LoadSkyTexture(device, assets, "minecraft/textures/environment/sun(without).png", "minecraft/textures/environment/sun.png", repeat: false);
-        _moonTexture = LoadSkyTexture(device, assets, "minecraft/textures/environment/moon(without).png", "minecraft/textures/environment/moon.png", repeat: false);
+        _moonTexture = LoadSkyTexture(device, assets, "minecraft/textures/environment/moon_phases.png", "minecraft/textures/environment/moon.png", repeat: false);
+        _moonUsesPhases = _moonTexture.Size.X > 32f && _moonTexture.Size.Y > 32f;
 
         _sunBatch = new SpriteBatch(device, _sunTexture.Texture, _sunTexture.Sampler);
         _moonBatch = new SpriteBatch(device, _moonTexture.Texture, _moonTexture.Sampler);
@@ -64,8 +66,10 @@ public sealed class SkyRenderer : IDisposable
         float angle = (atmosphere.TimeOfDay - 0.25f) * 2f * MathF.PI;
         var sunRegion = new SpriteRegion(Vector2.Zero, Vector2.One, _sunTexture.Size);
         var sunSize = new Vector2(config.SunSize, config.SunSize);
+        float sunAlpha = Math.Clamp((atmosphere.SunIntensity - 0.1f) / 0.35f, 0f, 1f);
+        float moonAlpha = Math.Clamp((atmosphere.MoonIntensity - 0.15f) / 0.85f, 0f, 1f) * (1f - atmosphere.RainIntensity * 0.15f);
 
-        if (atmosphere.SunIntensity > 0.1f)
+        if (sunAlpha > 0.001f)
         {
             _sunBatch.Begin(width, height);
             var sunDir = Vector3.Normalize(new Vector3(MathF.Cos(angle), MathF.Sin(angle), 0f));
@@ -73,21 +77,38 @@ public sealed class SkyRenderer : IDisposable
             if (TryProjectToScreen(camera, sunPos, width, height, out var sunScreen))
             {
                 var sunSpritePos = new Vector2(sunScreen.X - sunSize.X * 0.5f, sunScreen.Y - sunSize.Y * 0.5f);
-                _sunBatch.Draw(sunRegion, sunSpritePos, sunSize, new Vector4(1f, 1f, 1f, 1f));
+                _sunBatch.Draw(sunRegion, sunSpritePos, sunSize, new Vector4(1f, 1f, 1f, sunAlpha));
             }
             _sunBatch.Flush(commandList);
         }
-        else
+        if (moonAlpha > 0.001f)
         {
             _moonBatch.Begin(width, height);
-            var moonRegion = new SpriteRegion(Vector2.Zero, Vector2.One, _moonTexture.Size);
             var moonSize = new Vector2(config.MoonSize, config.MoonSize);
             var moonDir = Vector3.Normalize(new Vector3(-MathF.Cos(angle), -MathF.Sin(angle), 0f));
             var moonPos = camera.Position + moonDir * 1000f;
             if (TryProjectToScreen(camera, moonPos, width, height, out var moonScreen))
             {
                 var moonSpritePos = new Vector2(moonScreen.X - moonSize.X * 0.5f, moonScreen.Y - moonSize.Y * 0.5f);
-                _moonBatch.Draw(moonRegion, moonSpritePos, moonSize, new Vector4(1f, 1f, 1f, 0.9f));
+                if (_moonUsesPhases)
+                {
+                    const int phaseColumns = 4;
+                    const int phaseRows = 2;
+                    const float phaseWidth = 1f / phaseColumns;
+                    const float phaseHeight = 1f / phaseRows;
+                    int phase = Math.Clamp(atmosphere.MoonPhaseIndex, 0, 7);
+                    int phaseX = phase % phaseColumns;
+                    int phaseY = phase / phaseColumns;
+                    var uvOffset = new Vector2(phaseX * phaseWidth, phaseY * phaseHeight);
+                    var uvScale = new Vector2(phaseWidth, phaseHeight);
+                    var fullRegion = new SpriteRegion(Vector2.Zero, Vector2.One, _moonTexture.Size);
+                    _moonBatch.Draw(fullRegion, moonSpritePos, moonSize, new Vector4(1f, 1f, 1f, moonAlpha), uvOffset, uvScale);
+                }
+                else
+                {
+                    var moonRegion = new SpriteRegion(Vector2.Zero, Vector2.One, _moonTexture.Size);
+                    _moonBatch.Draw(moonRegion, moonSpritePos, moonSize, new Vector4(1f, 1f, 1f, moonAlpha));
+                }
             }
             _moonBatch.Flush(commandList);
         }

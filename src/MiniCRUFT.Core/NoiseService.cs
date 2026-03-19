@@ -15,7 +15,20 @@ public sealed class NoiseService
     public float Peaks(float x, float z) => _perlin.Fractal2D(x, z, 0.0065f, 4, 0.5f, 2.0f);
     public float Erosion(float x, float z) => _perlin.Fractal2D(x, z, 0.0035f, 4, 0.5f, 2.0f);
     public float Biome(float x, float z) => _perlin.Fractal2D(x, z, 0.0015f, 3, 0.5f, 2.0f);
-    public float River(float x, float z) => _perlin.Fractal2D(x, z, 0.004f, 3, 0.5f, 2.0f);
+    public float River(float x, float z) => River(x, z, 1f);
+    public float River(float x, float z, float scale)
+    {
+        if (scale <= 0f)
+        {
+            scale = 1f;
+        }
+
+        return _perlin.Fractal2D(x, z, 0.004f * scale, 3, 0.5f, 2.0f);
+    }
+    public float Trail(float x, float z) => _perlin.Fractal2D(x, z, 0.0009f, 2, 0.5f, 2.0f);
+    public float Detail(float x, float z) => _perlin.Fractal2D(x, z, 0.012f, 2, 0.5f, 2.0f);
+    public float Dune(float x, float z) => _perlin.Fractal2D(x, z, 0.018f, 2, 0.5f, 2.0f);
+    public float TreeCluster(float x, float z) => _perlin.Fractal2D(x, z, 0.0018f, 2, 0.5f, 2.0f);
     public float Cave(float x, float y, float z) => _perlin.Fractal3D(x, y, z, 0.02f, 3, 0.55f, 2.1f);
 
     private sealed class PerlinNoise

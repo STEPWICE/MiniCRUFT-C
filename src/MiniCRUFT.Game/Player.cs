@@ -15,6 +15,14 @@ public sealed class Player
     public float Yaw;
     public float Pitch;
     public bool OnGround;
+    public int Health { get; private set; }
+    public int MaxHealth { get; }
+    public float HurtCooldown { get; private set; }
+    public bool InWater { get; private set; }
+    public bool InLava { get; private set; }
+    public float WaterCoverage { get; private set; }
+    public float LavaCoverage { get; private set; }
+    public Vector3 EyePosition => Position + new Vector3(0f, _physics.EyeHeight, 0f);
 
     private Vector3 _lastSafePosition;
     private bool _hasSafePosition;
@@ -23,10 +31,17 @@ public sealed class Player
     {
         Position = start;
         _physics = physics;
+        MaxHealth = Math.Max(1, physics.PlayerMaxHealth);
+        Health = MaxHealth;
     }
 
-    public void Update(float dt, InputState input, WorldType world, float speed, float mouseSensitivity)
+    public void Update(float dt, InputState input, WorldType world, float speed, float mouseSensitivity, float sprintMultiplier = 1f)
     {
+        if (HurtCooldown > 0f)
+        {
+            HurtCooldown = Math.Max(0f, HurtCooldown - dt);
+        }
+
         if (!world.HasChunkAt(MathUtil.FloorToInt(Position.X), MathUtil.FloorToInt(Position.Z)))
         {
             if (_hasSafePosition)
@@ -34,8 +49,16 @@ public sealed class Player
                 Position = _lastSafePosition;
                 Velocity = Vector3.Zero;
             }
+            InWater = false;
+            InLava = false;
+            WaterCoverage = 0f;
+            LavaCoverage = 0f;
             return;
         }
+
+        CharacterLiquidState liquidState = CharacterLiquidSampler.Sample(world, Position, _physics.PlayerWidth, _physics.PlayerHeight);
+        float liquidCoverage = liquidState.Coverage;
+        bool inLiquid = liquidState.InLiquid;
 
         Yaw += input.MouseDeltaX * mouseSensitivity;
         Pitch -= input.MouseDeltaY * mouseSensitivity;
@@ -54,17 +77,47 @@ public sealed class Player
             move = Vector3.Normalize(move);
         }
 
-        float moveSpeed = speed * (input.Sprint ? _physics.SprintMultiplier : 1f);
+        float moveSpeed = speed * (input.Sprint ? sprintMultiplier : 1f);
+        if (inLiquid)
+        {
+            float swimMultiplier = 1f - (1f - _physics.WaterMoveMultiplier) * liquidCoverage;
+            moveSpeed *= swimMultiplier;
+        }
         Velocity.X = move.X * moveSpeed;
         Velocity.Z = move.Z * moveSpeed;
 
-        if (OnGround && input.Jump)
+        if (inLiquid)
         {
-            Velocity.Y = _physics.JumpVelocity;
-            OnGround = false;
+            float gravityMultiplier = 1f - (1f - _physics.WaterGravityMultiplier) * liquidCoverage;
+            Velocity.Y += _physics.Gravity * gravityMultiplier * dt;
+            Velocity.Y += _physics.WaterBuoyancy * liquidCoverage * dt;
+            if (input.Jump)
+            {
+                Velocity.Y = Math.Max(Velocity.Y, _physics.WaterJumpVelocity);
+                OnGround = false;
+            }
+
+            Velocity.Y = Math.Max(Velocity.Y, -_physics.WaterMaxFallSpeed);
+        }
+        else
+        {
+            if (OnGround && input.Jump)
+            {
+                Velocity.Y = _physics.JumpVelocity;
+                OnGround = false;
+            }
+
+            Velocity.Y += _physics.Gravity * dt;
         }
 
-        Velocity.Y += _physics.Gravity * dt;
+        if (liquidState.InWater)
+        {
+            Vector3 waterCurrent = LiquidCurrentSampler.SampleWaterCurrent(world, Position, _physics.PlayerWidth, _physics.PlayerHeight);
+            if (waterCurrent.LengthSquared() > float.Epsilon)
+            {
+                Velocity += waterCurrent * _physics.WaterCurrentMultiplier * liquidState.WaterCoverage;
+            }
+        }
 
         MoveAndCollide(world, Velocity * dt);
 
@@ -87,6 +140,61 @@ public sealed class Player
             _lastSafePosition = Position;
             _hasSafePosition = true;
         }
+
+        if (world.HasChunkAt(MathUtil.FloorToInt(Position.X), MathUtil.FloorToInt(Position.Z)))
+        {
+            liquidState = CharacterLiquidSampler.Sample(world, Position, _physics.PlayerWidth, _physics.PlayerHeight);
+            InWater = liquidState.InWater;
+            InLava = liquidState.InLava;
+            WaterCoverage = liquidState.WaterCoverage;
+            LavaCoverage = liquidState.LavaCoverage;
+        }
+        else
+        {
+            InWater = false;
+            InLava = false;
+            WaterCoverage = 0f;
+            LavaCoverage = 0f;
+        }
+    }
+
+    public bool TryApplyDamage(int damage, Vector3 knockback)
+    {
+        return TryApplyDamage(damage, knockback, _physics.HurtCooldownSeconds);
+    }
+
+    public bool TryApplyDamage(int damage, Vector3 knockback, float cooldownSeconds)
+    {
+        if (damage <= 0 || Health <= 0 || HurtCooldown > 0f)
+        {
+            return false;
+        }
+
+        Health = Math.Max(0, Health - damage);
+        HurtCooldown = Math.Max(0f, cooldownSeconds);
+        Velocity += knockback;
+        if (Health == 0)
+        {
+            Velocity = Vector3.Zero;
+            OnGround = false;
+        }
+
+        return true;
+    }
+
+    public void Respawn(Vector3 position)
+    {
+        Position = position;
+        Velocity = Vector3.Zero;
+        OnGround = false;
+        Health = MaxHealth;
+        HurtCooldown = 0f;
+        _lastSafePosition = position;
+        _hasSafePosition = true;
+        InWater = false;
+        InLava = false;
+        WaterCoverage = 0f;
+        LavaCoverage = 0f;
     }
 
     private void MoveAndCollide(WorldType world, Vector3 delta)

@@ -75,7 +75,8 @@ public static class TreeGenerator
 
                     int dx = lx < 0 ? lx : lx - 1;
                     int dz = lz < 0 ? lz : lz - 1;
-                    if (dx * dx + dz * dz > radius * radius)
+                    bool trim = ly >= top;
+                    if (trim && Math.Abs(dx) == radius && Math.Abs(dz) == radius)
                     {
                         continue;
                     }
@@ -109,16 +110,22 @@ public static class TreeGenerator
             chunk.SetBlock(x, ty, z, BlockId.SpruceWood);
         }
 
-        int leafStart = y + height - 4;
+        int leafStart = y + height - 5;
         int leafEnd = y + height + 1;
-        int radius = 2;
+        int baseRadius = 2;
         for (int ly = leafStart; ly <= leafEnd; ly++)
         {
-            int r = Math.Max(1, radius - (leafEnd - ly) / 2);
+            int r = Math.Max(1, baseRadius - (leafEnd - ly) / 3);
+            bool trim = ly >= leafEnd - 1;
             for (int lx = -r; lx <= r; lx++)
             {
                 for (int lz = -r; lz <= r; lz++)
                 {
+                    if (trim && Math.Abs(lx) == r && Math.Abs(lz) == r)
+                    {
+                        continue;
+                    }
+
                     int ax = x + lx;
                     int az = z + lz;
                     if (ax < 0 || ax >= Chunk.SizeX || az < 0 || az >= Chunk.SizeZ || ly < 0 || ly >= Chunk.SizeY)
@@ -137,7 +144,7 @@ public static class TreeGenerator
 
     private static void GenerateSimpleTree(Chunk chunk, int x, int y, int z, Random rand, BlockId wood, BlockId leaves, int minHeight, int maxHeight, int leafRadius)
     {
-        int height = rand.Next(minHeight, maxHeight);
+        int height = rand.Next(minHeight, maxHeight + 1);
         for (int i = 0; i < height; i++)
         {
             int ty = y + i;
@@ -148,15 +155,21 @@ public static class TreeGenerator
             chunk.SetBlock(x, ty, z, wood);
         }
 
-        int leafStart = y + height - 2;
+        int leafStart = y + height - 3;
         int leafEnd = y + height + 1;
         for (int ly = leafStart; ly <= leafEnd; ly++)
         {
-            int radius = ly == leafEnd ? 1 : leafRadius;
+            bool topLayer = ly >= leafEnd - 1;
+            int radius = topLayer ? Math.Max(1, leafRadius - 1) : leafRadius;
             for (int lx = -radius; lx <= radius; lx++)
             {
                 for (int lz = -radius; lz <= radius; lz++)
                 {
+                    if (topLayer && Math.Abs(lx) == radius && Math.Abs(lz) == radius)
+                    {
+                        continue;
+                    }
+
                     int ax = x + lx;
                     int az = z + lz;
                     if (ax < 0 || ax >= Chunk.SizeX || az < 0 || az >= Chunk.SizeZ || ly < 0 || ly >= Chunk.SizeY)
@@ -238,7 +251,8 @@ public static class TreeGenerator
                     int az = z + lz;
                     int dx = lx < 0 ? lx : lx - 1;
                     int dz = lz < 0 ? lz : lz - 1;
-                    if (dx * dx + dz * dz > radius * radius)
+                    bool trim = ly >= top;
+                    if (trim && Math.Abs(dx) == radius && Math.Abs(dz) == radius)
                     {
                         continue;
                     }

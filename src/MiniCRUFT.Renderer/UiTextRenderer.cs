@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
-using FontStashSharp;
 using MiniCRUFT.Core;
 using Veldrid;
 using Veldrid.SPIRV;
@@ -98,10 +98,10 @@ vec3 LinearToSrgb(vec3 c)
 
 void main()
 {
-    float alpha = texture(sampler2D(FontTexture, FontSampler), fsin_TexCoord).r;
+    float alpha = texture(sampler2D(FontTexture, FontSampler), fsin_TexCoord).a;
     vec3 rgb = LinearToSrgb(fsin_Color.rgb);
     fsout_Color = vec4(rgb, fsin_Color.a * alpha);
-    if (fsout_Color.a < 0.05)
+    if (fsout_Color.a < 0.01)
     {
         discard;
     }
@@ -163,10 +163,10 @@ float3 LinearToSrgb(float3 c)
 
 float4 main(PSInput input) : SV_Target
 {
-    float alpha = FontTexture.Sample(FontSampler, input.TexCoord).r;
+    float alpha = FontTexture.Sample(FontSampler, input.TexCoord).a;
     float3 rgb = LinearToSrgb(input.Color.rgb);
     float4 color = float4(rgb, input.Color.a * alpha);
-    if (color.a < 0.05)
+    if (color.a < 0.01)
     {
         discard;
     }
@@ -197,7 +197,7 @@ float4 main(PSInput input) : SV_Target
         }
     }
 
-    public void Queue(FontTexture texture, Vector2 position, System.Drawing.Rectangle? sourceRect, FSColor color, Vector2 scale)
+    public void Queue(FontTexture texture, Vector2 position, System.Drawing.Rectangle sourceRect, Vector4 colorSrgb, Vector2 scale)
     {
         if (!_batches.TryGetValue(texture, out var batch))
         {
@@ -209,7 +209,7 @@ float4 main(PSInput input) : SV_Target
             texture.Clear();
         }
 
-        var rect = sourceRect ?? new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height);
+        var rect = sourceRect;
         float width = rect.Width * scale.X;
         float height = rect.Height * scale.Y;
 
@@ -218,12 +218,16 @@ float4 main(PSInput input) : SV_Target
         Vector2 p2 = ToNdc(position.X + width, position.Y + height);
         Vector2 p3 = ToNdc(position.X, position.Y + height);
 
-        Vector2 uv0 = new Vector2(rect.X / (float)texture.Width, rect.Y / (float)texture.Height);
-        Vector2 uv1 = new Vector2((rect.X + rect.Width) / (float)texture.Width, rect.Y / (float)texture.Height);
-        Vector2 uv2 = new Vector2((rect.X + rect.Width) / (float)texture.Width, (rect.Y + rect.Height) / (float)texture.Height);
-        Vector2 uv3 = new Vector2(rect.X / (float)texture.Width, (rect.Y + rect.Height) / (float)texture.Height);
+        float u0 = rect.X / (float)texture.Width;
+        float u1 = (rect.X + rect.Width) / (float)texture.Width;
+        float v0 = rect.Y / (float)texture.Height;
+        float v1 = (rect.Y + rect.Height) / (float)texture.Height;
+        Vector2 uv0 = new Vector2(u0, v0);
+        Vector2 uv1 = new Vector2(u1, v0);
+        Vector2 uv2 = new Vector2(u1, v1);
+        Vector2 uv3 = new Vector2(u0, v1);
 
-        var tint = ColorSpace.ToLinear(new Vector4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f));
+        var tint = ColorSpace.ToLinear(colorSrgb);
 
         ushort start = (ushort)batch.Vertices.Count;
         batch.Vertices.Add(new UiTextVertex(p0, uv0, tint));
@@ -257,8 +261,8 @@ float4 main(PSInput input) : SV_Target
 
             commandList.SetVertexBuffer(0, _vertexBuffer);
             commandList.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-            commandList.UpdateBuffer(_vertexBuffer, 0, batch.Vertices.ToArray());
-            commandList.UpdateBuffer(_indexBuffer, 0, batch.Indices.ToArray());
+            commandList.UpdateBuffer(_vertexBuffer, 0, CollectionsMarshal.AsSpan(batch.Vertices));
+            commandList.UpdateBuffer(_indexBuffer, 0, CollectionsMarshal.AsSpan(batch.Indices));
             commandList.DrawIndexed((uint)batch.Indices.Count, 1, 0, 0, 0);
         }
     }

@@ -21,14 +21,14 @@ public sealed class FontTexture : IDisposable
             (uint)height,
             1,
             1,
-            PixelFormat.R8_UNorm,
+            PixelFormat.R8_G8_B8_A8_UNorm,
             TextureUsage.Sampled));
         View = device.ResourceFactory.CreateTextureView(Texture);
     }
 
     public void Clear()
     {
-        var clear = new byte[Width * Height];
+        var clear = new byte[Width * Height * 4];
         _device.UpdateTexture(Texture, clear, 0, 0, 0, (uint)Width, (uint)Height, 1, 0, 0);
     }
 

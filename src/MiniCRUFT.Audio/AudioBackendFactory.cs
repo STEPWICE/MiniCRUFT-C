@@ -14,9 +14,18 @@ public static class AudioBackendFactory
 
         if (OperatingSystem.IsWindows())
         {
-            return new NaudioBackend(config.MaxActive);
+            try
+            {
+                return new NaudioBackend(config.MaxActive);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn($"Audio backend unavailable, falling back to no-op backend: {ex.Message}");
+                return new NoAudioBackend();
+            }
         }
 
+        Log.Warn("Audio backend unavailable on this platform because the current implementation depends on NAudio; using no-op backend.");
         return new NoAudioBackend();
     }
 }

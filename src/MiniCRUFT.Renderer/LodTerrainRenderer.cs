@@ -51,8 +51,8 @@ public sealed class LodTerrainRenderer : IDisposable
         _worldSettings = settings;
         _biomeTintStrength = renderConfig.BiomeTintStrength;
         _cliffThreshold = settings.CliffSlopeThreshold * 1.35f;
-        _sandColor = ColorSpace.ToLinear(Color3.FromBytes(222, 204, 146).ToVector3());
-        _stoneColor = ColorSpace.ToLinear(Color3.FromBytes(125, 125, 125).ToVector3());
+        _sandColor = ColorSpace.ToLinear(renderConfig.Palette.SandTint.ToVector3());
+        _stoneColor = ColorSpace.ToLinear(renderConfig.Palette.StoneTint.ToVector3());
         _waterTintLinear = ColorSpace.ToLinear(atmosphere.WaterTint.ToVector3());
 
         _vertexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription(1024, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
@@ -268,7 +268,8 @@ public sealed class LodTerrainRenderer : IDisposable
         if (height < _seaLevel)
         {
             y = _seaLevel;
-            color = Vector3.Lerp(color, _waterTintLinear, 0.75f);
+            float waterBlend = _worldSettings.StrictBetaMode ? 0.68f : 0.75f;
+            color = Vector3.Lerp(color, _waterTintLinear, waterBlend);
         }
 
         return new LodVertex(new Vector3(x, y, z), new Vector4(color, 1f));
@@ -303,8 +304,8 @@ public sealed class LodTerrainRenderer : IDisposable
             _indexBuffer = _device.ResourceFactory.CreateBuffer(new BufferDescription(indexSize, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
         }
 
-        _device.UpdateBuffer(_vertexBuffer, 0, data.Vertices.ToArray());
-        _device.UpdateBuffer(_indexBuffer, 0, data.Indices.ToArray());
+        _device.UpdateBuffer(_vertexBuffer, 0, CollectionsMarshal.AsSpan(data.Vertices));
+        _device.UpdateBuffer(_indexBuffer, 0, CollectionsMarshal.AsSpan(data.Indices));
         _indexCount = (uint)data.Indices.Count;
     }
 
@@ -325,6 +326,9 @@ layout(set = 0, binding = 0) uniform CameraBuffer
     vec4 Misc;
     vec4 HorizonParams;
     vec4 LightingParams;
+    vec4 FaceShadingParams;
+    vec4 PaletteSand;
+    vec4 PaletteStone;
     vec4 CutoutParams;
 };
 
@@ -424,6 +428,9 @@ cbuffer CameraBuffer : register(b0)
     float4 Misc;
     float4 HorizonParams;
     float4 LightingParams;
+    float4 FaceShadingParams;
+    float4 PaletteSand;
+    float4 PaletteStone;
     float4 CutoutParams;
 };
 

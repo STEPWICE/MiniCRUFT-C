@@ -1,71 +1,111 @@
 # WORLD_GENERATION.md
 
-**Цели**
-Генерация мира должна давать атмосферу Beta 1.7.3: высокие клифы, долины, реки и выраженные контрасты высот.
+## Goals
+The current generator aims for a Beta 1.7.3-like feel with stronger Minecraft-style underground systems: readable land masses, smoother transitions, distinct biomes, natural river lines, aquifers and enough local variation to avoid flat or repetitive terrain.
 
-**Общий принцип**
-Генерация выполняется детерминированно по seed. Каждый чанк генерируется независимо, но с одинаковыми результатами при одинаковом seed.
+## Determinism
+Generation is deterministic per seed. Chunks are generated independently, but the same seed always yields the same world.
 
-**Слои шума**
-Используется собственный Perlin‑noise (фрактальная сумма октав):
-- `Continental` — континенты и общий рельеф
-- `Peaks` — пики и резкие формы
-- `Erosion` — сглаживание и склоны
-- `Biome` — распределение биомов
-- `River` — русла рек
-- `Cave` (3D) — пещеры
+## Main Layers
+The generator uses layered noise:
+- `Continental` - large land mass shaping
+- `Biome` - biome distribution and climate blobs
+- `Peaks` - mountain ridges and stronger elevation changes
+- `Erosion` - smoothing and slope moderation
+- `River` - river corridors and basin carving
+- `Detail` - small-scale terrain variation
+- `Cave` - 3D cave carving
+- `Aquifer` - underground liquid pockets and source placement
 
-**Формула высоты**
-Финальная высота = базовая + вклад каждого слоя:
+## Height Model
+Final surface height is built from:
 - `BaseHeight`
 - `ContinentalAmplitude`
 - `PeakAmplitude`
 - `ErosionAmplitude`
 - `RidgeAmplitude`
+- biome-specific height scale and bias
 
-Текущие параметры см. `WorldGenSettings`.
+Current values are defined in `WorldGenSettings` and mirrored in `WorldGenConfig`.
 
-**Клифы и пляжи**
-- Клиф определяется по крутизне склона и ridge‑шуму.
-- Вблизи уровня моря формируется пляж (песок), если нет клифа.
-
-**Реки**
-- `abs(RiverNoise) < RiverThreshold` → биом `River`.
-- Река прорезает уровень поверхности до `SeaLevel - 3`.
-
-**Пещеры**
-- 3D‑шум: если `CaveNoise > CaveThreshold`, блок удаляется.
-- Пещеры не затрагивают верхние 2 слоя поверхности.
-
-**Биомы**
-Минимальный набор:
+## Biomes
+Current `BiomeId` values:
 - `Forest`
 - `Plains`
 - `Desert`
 - `Mountains`
 - `River`
+- `Taiga`
+- `Tundra`
+- `Swamp`
+- `Savanna`
+- `Shrubland`
 
-**Поверхностные блоки**
-- `Forest/Plains` → `Grass`
-- `Desert/River` → `Sand`
-- `Mountains` → `Stone`
+Biome selection uses climate-style noise fields and a contrast pass so large biome patches stay coherent.
 
-**Деревья**
-- Oak и Birch в лесах и равнинах
-- Spruce в горах
+## Biome Notes
+- `Forest` - denser trees, grass, flowers and fallen logs
+- `Plains` - lighter tree coverage and wider open space
+- `Desert` - dunes, cactus and dead bushes
+- `Mountains` - stone-heavy slopes, snow line support and sparse trees
+- `River` - carved corridor with water and bank layers
+- `Taiga` - colder forest with spruce and snowier surfaces
+- `Tundra` - sparse vegetation and colder palette
+- `Swamp` - lower, wetter land with more water-adjacent detail
+- `Savanna` - warm, open terrain with scattered trees and tall grass
+- `Shrubland` - dry, sparse, low-tree biome between plains and desert
 
-**Руды**
-- `Coal` 0–128
-- `Iron` 0–64
-- `Gold` 0–32
-- `Diamond` 0–16
+## Rivers
+- `RiverThreshold` defines when the river mask wins.
+- `RiverWidth`, `RiverDepth` and `RiverWarpStrength` control shape and scale.
+- Banks use layered surface materials instead of a single flat water edge.
+- Water placed by generation is a source block and later fluid updates can spread from it.
+- Deeper basins can fill beyond river corridors, so lakes and lowland water bodies are less linear.
 
-**Детерминированность**
-Seed влияет на:
-- шумы генерации
-- редкие события (деревья, цветы, трава)
+## Aquifers
+- `GenerateAquifers` enables underground liquid seeding.
+- `AquiferWaterLevelOffset` and `AquiferLavaLevelOffset` keep water and lava at different depths.
+- `AquiferWaterScale`, `AquiferWaterThreshold`, `AquiferLavaScale` and `AquiferLavaThreshold` control pocket density with 3D noise.
+- Lava is seeded deeper than water and can harden into cobblestone or obsidian when it meets water.
+- Strict beta mode disables aquifer seeding, keeping the older terrain feel for compatibility.
 
-При одинаковом seed чанки генерируются одинаково.
+## Trails And Microzones
+The terrain includes smaller masks for trails, clearings and local feature clusters.
+- Trails reduce vegetation and can replace the top layer with dirt.
+- Microzones can create small ponds, gravel patches, flower clusters, boulders and fallen logs.
+- The intent is to keep these features noise-driven and geographically coherent, not random per-block noise.
 
-**LOD-визуализация**
-Дальний рельеф использует те же биомы и пороги клифов, но упрощённый цвет и освещение для стабильной дальности без лишней геометрии.
+## Points Of Interest
+Rare structures are generated by a separate `StructureGenerator` pass after the base terrain and surface features.
+- Camps and watchtowers appear on flatter, more readable terrain.
+- Buried caches create subtle exploration targets under the surface.
+- Cave caches appear deeper underground to reward spelunking.
+- Ruins add a higher-elevation surface target with better loot visibility and ruin-specific chest rewards.
+- Mine shafts create a deeper underground target with supports, torches and mine-shaft-specific chest rewards.
+- Structure placement is deterministic per seed and controlled by the `WorldGenConfig` structure fields.
+
+## Surface Blocks
+- `Forest` and `Plains` normally use grass-based surfaces
+- `Desert` and river banks use sand-based surfaces
+- `Mountains` use stone and cliff transitions
+- colder biomes can use snow or colder surface variation
+
+## Vegetation
+- `Forest` and `Plains` get oak and birch trees
+- `Taiga` gets spruce trees
+- `Savanna`, `Shrubland` and `Swamp` get their own tree and grass density tuning
+- `Desert` can spawn cactus and dead bushes
+- `River` and wet areas can spawn sugar cane
+
+## Ores
+Ore placement remains depth-based:
+- `Coal` - 0 to 128
+- `Iron` - 0 to 64
+- `Gold` - 0 to 32
+- `Diamond` - 0 to 16
+
+## Player Spawn
+Spawn search is biome-aware and can be randomized. `Spawn.Randomize` controls whether the game searches for a fresh start location.
+
+## LOD View
+The distant terrain uses the same biome decisions and height model, but simplified shading and color for stability and readability at distance.

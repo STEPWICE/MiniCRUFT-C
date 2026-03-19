@@ -8,10 +8,25 @@ namespace MiniCRUFT.Renderer;
 
 public sealed class ChunkMeshBuilder
 {
+    private const float TorchHalfWidth = 0.12f;
+    private const float TorchHeight = 0.7f;
+    private const float TorchWallOffset = 0.3f;
+    private const float TorchWallLift = 0.2f;
+    private const float TorchTilt = 0.3926991f; // ~22.5 deg
+    private const float TorchFlameWidth = 0.35f;
+    private const float TorchFlameHeight = 0.45f;
+    private const float TorchFlameLift = 0.02f;
+    private static readonly Vector2 TorchUvMin = new(7f / 16f, 6f / 16f);
+    private static readonly Vector2 TorchUvMax = new(9f / 16f, 1f);
+
     private readonly TextureAtlas _atlas;
     private readonly RenderConfig _renderConfig;
     private readonly AtmosphereConfig _atmosphereConfig;
     private readonly Vector3 _waterTintLinear;
+    private readonly Vector3 _waterShoreTintLinear;
+    private readonly Vector3 _lavaTintLinear;
+    private readonly float _waterShoreStrength;
+    private readonly float _lavaOpacity;
 
     public ChunkMeshBuilder(TextureAtlas atlas, RenderConfig renderConfig, AtmosphereConfig atmosphereConfig)
     {
@@ -19,14 +34,33 @@ public sealed class ChunkMeshBuilder
         _renderConfig = renderConfig;
         _atmosphereConfig = atmosphereConfig;
         _waterTintLinear = ColorSpace.ToLinear(atmosphereConfig.WaterTint.ToVector3());
+        _waterShoreTintLinear = ColorSpace.ToLinear(atmosphereConfig.WaterShoreTint.ToVector3());
+        _lavaTintLinear = ColorSpace.ToLinear(atmosphereConfig.LavaTint.ToVector3());
+        _waterShoreStrength = atmosphereConfig.WaterShoreStrength;
+        _lavaOpacity = atmosphereConfig.LavaOpacity;
     }
 
     public MeshData Build(ChunkNeighborhood neighborhood)
     {
         var data = new MeshData();
-        var chunk = neighborhood.Center;
-        int[] dims = { Chunk.SizeX, Chunk.SizeY, Chunk.SizeZ };
+        BuildGreedyPass(data, neighborhood, FacePass.Opaque);
+        BuildGreedyPass(data, neighborhood, FacePass.Transparent);
 
+        AddCrossGeometry(data, neighborhood);
+        AddTorchGeometry(data, neighborhood);
+
+        return data;
+    }
+
+    private enum FacePass
+    {
+        Opaque,
+        Transparent
+    }
+
+    private void BuildGreedyPass(MeshData data, ChunkNeighborhood neighborhood, FacePass pass)
+    {
+        int[] dims = { Chunk.SizeX, Chunk.SizeY, Chunk.SizeZ };
         for (int d = 0; d < 3; d++)
         {
             int u = (d + 1) % 3;
@@ -44,20 +78,24 @@ public sealed class ChunkMeshBuilder
                 {
                     for (x[u] = 0; x[u] < dims[u]; x[u]++)
                     {
-                        if (!neighborhood.TryGetBlock(x[0], x[1], x[2], out var a) ||
-                            !neighborhood.TryGetBlock(x[0] + q[0], x[1] + q[1], x[2] + q[2], out var b))
+                        bool hasA = neighborhood.TryGetBlock(x[0], x[1], x[2], out var a);
+                        bool hasB = neighborhood.TryGetBlock(x[0] + q[0], x[1] + q[1], x[2] + q[2], out var b);
+                        if (!hasA)
                         {
-                            mask[n++] = FaceCell.Empty;
-                            continue;
+                            a = BlockId.Air;
+                        }
+                        if (!hasB)
+                        {
+                            b = BlockId.Air;
                         }
 
                         var cell = FaceCell.Empty;
-                        if (IsFaceVisible(a, b))
+                        if (IsFaceVisible(pass, a, b))
                         {
                             int tintKey = GetTintKey(neighborhood, a, d, false, x[0], x[2]);
                             cell = new FaceCell(a, false, tintKey);
                         }
-                        else if (IsFaceVisible(b, a))
+                        else if (IsFaceVisible(pass, b, a))
                         {
                             int tintKey = GetTintKey(neighborhood, b, d, true, x[0], x[2]);
                             cell = new FaceCell(b, true, tintKey);
@@ -129,13 +167,9 @@ public sealed class ChunkMeshBuilder
                 }
             }
         }
-
-        AddCrossGeometry(data, neighborhood);
-
-        return data;
     }
 
-    private static bool IsFaceVisible(BlockId current, BlockId neighbor)
+    private static bool IsFaceVisible(FacePass pass, BlockId current, BlockId neighbor)
     {
         if (current == BlockId.Air)
         {
@@ -143,28 +177,38 @@ public sealed class ChunkMeshBuilder
         }
 
         var currentDef = BlockRegistry.Get(current);
-        if (currentDef.RenderMode == RenderMode.Cross)
+        if (currentDef.RenderMode == RenderMode.Cross || currentDef.RenderMode == RenderMode.Torch)
         {
             return false;
         }
-        if (!currentDef.IsTransparent)
+
+        if (LiquidBlocks.IsLiquid(current) && LiquidBlocks.IsLiquid(neighbor))
         {
+            return false;
+        }
+
+        if (pass == FacePass.Opaque)
+        {
+            if (currentDef.RenderMode != RenderMode.Opaque)
+            {
+                return false;
+            }
+
             if (neighbor == BlockId.Air)
             {
                 return true;
             }
 
             var neighborDef = BlockRegistry.Get(neighbor);
-            return neighborDef.IsTransparent;
+            return neighborDef.RenderMode != RenderMode.Opaque;
+        }
+
+        if (currentDef.RenderMode == RenderMode.Opaque)
+        {
+            return false;
         }
 
         if (neighbor == BlockId.Air)
-        {
-            return true;
-        }
-
-        var neighborDef2 = BlockRegistry.Get(neighbor);
-        if (!neighborDef2.IsTransparent)
         {
             return true;
         }
@@ -201,6 +245,7 @@ public sealed class ChunkMeshBuilder
             RenderMode.Transparent => (data.TransparentVertices, data.TransparentIndices),
             RenderMode.Cutout => (data.CutoutVertices, data.CutoutIndices),
             RenderMode.Cross => (data.CutoutVertices, data.CutoutIndices),
+            RenderMode.Torch => (data.CutoutVertices, data.CutoutIndices),
             _ => (data.SolidVertices, data.SolidIndices)
         };
 
@@ -232,15 +277,30 @@ public sealed class ChunkMeshBuilder
         float l1 = SampleVertexLight(neighborhood, x[0] + du[0], x[1] + du[1], x[2] + du[2], axis, backFace) * ao1;
         float l2 = SampleVertexLight(neighborhood, x[0] + du[0] + dv[0], x[1] + du[1] + dv[1], x[2] + du[2] + dv[2], axis, backFace) * ao2;
         float l3 = SampleVertexLight(neighborhood, x[0] + dv[0], x[1] + dv[1], x[2] + dv[2], axis, backFace) * ao3;
+        float faceLight = (l0 + l1 + l2 + l3) * 0.25f;
 
         Vector4 tint = GetTintColor(neighborhood, def, axis, backFace, x[0], x[2]);
-        if (block == BlockId.Water)
+        bool isWater = LiquidBlocks.IsWater(block);
+        bool isLava = LiquidBlocks.IsLava(block);
+        if (isWater)
         {
-            tint = new Vector4(_waterTintLinear, _atmosphereConfig.WaterOpacity);
+            Vector3 tintRgb = _waterTintLinear;
+            if (axis == 1 && !backFace && IsWaterShore(neighborhood, x[0], x[1], x[2]))
+            {
+                tintRgb = Vector3.Lerp(_waterTintLinear, _waterShoreTintLinear, _waterShoreStrength);
+            }
+            tint = new Vector4(tintRgb, _atmosphereConfig.WaterOpacity);
         }
-        float materialId = def.IsFoliage ? 1f :
-            block == BlockId.Water ? 2f :
-            def.RenderMode == RenderMode.Transparent || def.RenderMode == RenderMode.Cutout ? 3f : 0f;
+        else if (isLava)
+        {
+            tint = new Vector4(_lavaTintLinear, _lavaOpacity);
+        }
+        float materialId = def.IsFoliage ? RenderMaterial.Foliage :
+            isWater ? RenderMaterial.Water :
+            isLava ? RenderMaterial.Lava :
+            block == BlockId.Sand ? RenderMaterial.Sand :
+            block == BlockId.Stone ? RenderMaterial.Stone :
+            def.RenderMode == RenderMode.Transparent || def.RenderMode == RenderMode.Cutout || def.RenderMode == RenderMode.Torch ? RenderMaterial.Transparent : RenderMaterial.Default;
         Vector2 atlasMin = region.Min;
         Vector2 atlasSize = region.Max - region.Min;
 
@@ -250,10 +310,10 @@ public sealed class ChunkMeshBuilder
             (uv1, uv3) = (uv3, uv1);
         }
 
-        vertices.Add(new VoxelVertex(v0, normal, uv0, atlasMin, atlasSize, l0, tint, materialId));
-        vertices.Add(new VoxelVertex(v1, normal, uv1, atlasMin, atlasSize, l1, tint, materialId));
-        vertices.Add(new VoxelVertex(v2, normal, uv2, atlasMin, atlasSize, l2, tint, materialId));
-        vertices.Add(new VoxelVertex(v3, normal, uv3, atlasMin, atlasSize, l3, tint, materialId));
+        vertices.Add(new VoxelVertex(v0, normal, uv0, atlasMin, atlasSize, faceLight, tint, materialId));
+        vertices.Add(new VoxelVertex(v1, normal, uv1, atlasMin, atlasSize, faceLight, tint, materialId));
+        vertices.Add(new VoxelVertex(v2, normal, uv2, atlasMin, atlasSize, faceLight, tint, materialId));
+        vertices.Add(new VoxelVertex(v3, normal, uv3, atlasMin, atlasSize, faceLight, tint, materialId));
 
         indices.Add(start);
         indices.Add(start + 1);
@@ -421,6 +481,30 @@ public sealed class ChunkMeshBuilder
         return Vector3.Dot(faceNormal, normal) < 0f;
     }
 
+    private static bool IsWaterShore(ChunkNeighborhood neighborhood, int x, int y, int z)
+    {
+        if (y < 0 || y >= Chunk.SizeY)
+        {
+            return false;
+        }
+
+        return IsSolidNeighbor(neighborhood.GetBlock(x - 1, y, z)) ||
+               IsSolidNeighbor(neighborhood.GetBlock(x + 1, y, z)) ||
+               IsSolidNeighbor(neighborhood.GetBlock(x, y, z - 1)) ||
+               IsSolidNeighbor(neighborhood.GetBlock(x, y, z + 1));
+    }
+
+    private static bool IsSolidNeighbor(BlockId id)
+    {
+        if (LiquidBlocks.IsLiquid(id) || id == BlockId.Air)
+        {
+            return false;
+        }
+
+        var def = BlockRegistry.Get(id);
+        return def.IsSolid && !def.IsTransparent;
+    }
+
     private static bool IsCross(BlockId id)
     {
         if (id == BlockId.Air)
@@ -429,6 +513,16 @@ public sealed class ChunkMeshBuilder
         }
 
         return BlockRegistry.Get(id).RenderMode == RenderMode.Cross;
+    }
+
+    private static bool IsTorch(BlockId id)
+    {
+        if (id == BlockId.Air)
+        {
+            return false;
+        }
+
+        return BlockRegistry.Get(id).RenderMode == RenderMode.Torch;
     }
 
     private void AddCrossGeometry(MeshData data, ChunkNeighborhood neighborhood)
@@ -441,6 +535,12 @@ public sealed class ChunkMeshBuilder
                 for (int y = 0; y < Chunk.SizeY; y++)
                 {
                     var id = chunk.GetBlock(x, y, z);
+                    if (id == BlockId.Fire)
+                    {
+                        AddFireGeometry(data, neighborhood, x, y, z);
+                        continue;
+                    }
+
                     if (!IsCross(id))
                     {
                         continue;
@@ -457,7 +557,7 @@ public sealed class ChunkMeshBuilder
 
                     float light = SampleCrossLight(neighborhood, x, y, z);
                     var tint = GetTintColor(neighborhood, def, 1, false, x, z);
-                    float materialId = def.IsFoliage ? 1f : 3f;
+                    float materialId = def.IsFoliage ? RenderMaterial.Foliage : RenderMaterial.Transparent;
 
                     Vector2 uv0 = Vector2.Zero;
                     Vector2 uv1 = new Vector2(1f, 0f);
@@ -486,6 +586,45 @@ public sealed class ChunkMeshBuilder
                 }
             }
         }
+    }
+
+    private void AddFireGeometry(MeshData data, ChunkNeighborhood neighborhood, int x, int y, int z)
+    {
+        var chunk = neighborhood.Center;
+        var basePos = new Vector3(
+            chunk.ChunkX * Chunk.SizeX + x,
+            y,
+            chunk.ChunkZ * Chunk.SizeZ + z);
+
+        float light = SampleCrossLight(neighborhood, x, y, z);
+        var fire0 = _atlas.GetRegion("fire_0");
+        var fire1 = _atlas.GetRegion("fire_1");
+        Vector4 tint = Vector4.One;
+        float materialId = RenderMaterial.Torch;
+        float height = 1.35f;
+        float inset = 0.18f;
+
+        Vector2 uv0 = Vector2.Zero;
+        Vector2 uv1 = new Vector2(1f, 0f);
+        Vector2 uv2 = Vector2.One;
+        Vector2 uv3 = new Vector2(0f, 1f);
+        var normal = Vector3.UnitY;
+
+        AddCrossQuad(data.CutoutVertices, data.CutoutIndices,
+            basePos + new Vector3(inset, 0f, inset),
+            basePos + new Vector3(1f - inset, 0f, 1f - inset),
+            basePos + new Vector3(1f - inset, height, 1f - inset),
+            basePos + new Vector3(inset, height, inset),
+            uv0, uv1, uv2, uv3,
+            fire0.Min, fire0.Max - fire0.Min, light, tint, normal, materialId);
+
+        AddCrossQuad(data.CutoutVertices, data.CutoutIndices,
+            basePos + new Vector3(1f - inset, 0f, inset),
+            basePos + new Vector3(inset, 0f, 1f - inset),
+            basePos + new Vector3(inset, height * 0.92f, 1f - inset),
+            basePos + new Vector3(1f - inset, height * 0.92f, inset),
+            uv0, uv1, uv2, uv3,
+            fire1.Min, fire1.Max - fire1.Min, light, tint, normal, materialId);
     }
 
     private static void AddCrossQuad(
@@ -526,5 +665,187 @@ public sealed class ChunkMeshBuilder
         byte torch = neighborhood.GetTorchLight(x, y, z);
         byte light = (byte)Math.Clamp(sky + torch, 0, 15);
         return light / 15f;
+    }
+
+    private void AddTorchGeometry(MeshData data, ChunkNeighborhood neighborhood)
+    {
+        var chunk = neighborhood.Center;
+        for (int x = 0; x < Chunk.SizeX; x++)
+        {
+            for (int z = 0; z < Chunk.SizeZ; z++)
+            {
+                for (int y = 0; y < Chunk.SizeY; y++)
+                {
+                    var id = chunk.GetBlock(x, y, z);
+                    if (!IsTorch(id))
+                    {
+                        continue;
+                    }
+
+                    var def = BlockRegistry.Get(id);
+                    var region = _atlas.GetRegion(def.TextureSide);
+
+                    Vector3 origin = new Vector3(
+                        chunk.ChunkX * Chunk.SizeX + x,
+                        y,
+                        chunk.ChunkZ * Chunk.SizeZ + z);
+
+                    float light = SampleCrossLight(neighborhood, x, y, z);
+                    Vector4 tint = Vector4.One;
+                    float materialId = RenderMaterial.Torch;
+
+                    var mount = GetTorchMount(id);
+                    var corners = BuildTorchCorners(origin, mount);
+
+                    Vector2 uv0 = TorchUvMin;
+                    Vector2 uv1 = new(TorchUvMax.X, TorchUvMin.Y);
+                    Vector2 uv2 = TorchUvMax;
+                    Vector2 uv3 = new(TorchUvMin.X, TorchUvMax.Y);
+                    Vector2 atlasMin = region.Min;
+                    Vector2 atlasSize = region.Max - region.Min;
+
+                    AddTorchFace(data.CutoutVertices, data.CutoutIndices, corners[0], corners[1], corners[2], corners[3], uv0, uv1, uv2, uv3, atlasMin, atlasSize, light, tint, materialId);
+                    AddTorchFace(data.CutoutVertices, data.CutoutIndices, corners[5], corners[4], corners[7], corners[6], uv0, uv1, uv2, uv3, atlasMin, atlasSize, light, tint, materialId);
+                    AddTorchFace(data.CutoutVertices, data.CutoutIndices, corners[4], corners[0], corners[3], corners[7], uv0, uv1, uv2, uv3, atlasMin, atlasSize, light, tint, materialId);
+                    AddTorchFace(data.CutoutVertices, data.CutoutIndices, corners[1], corners[5], corners[6], corners[2], uv0, uv1, uv2, uv3, atlasMin, atlasSize, light, tint, materialId);
+                    AddTorchFace(data.CutoutVertices, data.CutoutIndices, corners[3], corners[2], corners[6], corners[7], uv0, uv1, uv2, uv3, atlasMin, atlasSize, light, tint, materialId);
+
+                    var flameRegion = _atlas.GetRegion("fire_0");
+                    AddTorchFlame(data, corners, flameRegion, light);
+                }
+            }
+        }
+    }
+
+    private static void AddTorchFace(
+        List<VoxelVertex> vertices,
+        List<uint> indices,
+        Vector3 v0,
+        Vector3 v1,
+        Vector3 v2,
+        Vector3 v3,
+        Vector2 uv0,
+        Vector2 uv1,
+        Vector2 uv2,
+        Vector2 uv3,
+        Vector2 atlasMin,
+        Vector2 atlasSize,
+        float light,
+        Vector4 tint,
+        float materialId)
+    {
+        Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
+        uint start = (uint)vertices.Count;
+        vertices.Add(new VoxelVertex(v0, normal, uv0, atlasMin, atlasSize, light, tint, materialId));
+        vertices.Add(new VoxelVertex(v1, normal, uv1, atlasMin, atlasSize, light, tint, materialId));
+        vertices.Add(new VoxelVertex(v2, normal, uv2, atlasMin, atlasSize, light, tint, materialId));
+        vertices.Add(new VoxelVertex(v3, normal, uv3, atlasMin, atlasSize, light, tint, materialId));
+
+        indices.Add(start);
+        indices.Add(start + 1);
+        indices.Add(start + 2);
+        indices.Add(start);
+        indices.Add(start + 2);
+        indices.Add(start + 3);
+    }
+
+    private static Vector3[] BuildTorchCorners(Vector3 origin, TorchMount mount)
+    {
+        var local = new[]
+        {
+            new Vector3(-TorchHalfWidth, 0f, -TorchHalfWidth),
+            new Vector3(TorchHalfWidth, 0f, -TorchHalfWidth),
+            new Vector3(TorchHalfWidth, TorchHeight, -TorchHalfWidth),
+            new Vector3(-TorchHalfWidth, TorchHeight, -TorchHalfWidth),
+            new Vector3(-TorchHalfWidth, 0f, TorchHalfWidth),
+            new Vector3(TorchHalfWidth, 0f, TorchHalfWidth),
+            new Vector3(TorchHalfWidth, TorchHeight, TorchHalfWidth),
+            new Vector3(-TorchHalfWidth, TorchHeight, TorchHalfWidth)
+        };
+
+        Quaternion rotation = Quaternion.Identity;
+        Vector3 anchor = new Vector3(0.5f, 0f, 0.5f);
+        switch (mount)
+        {
+            case TorchMount.WallNorth:
+                anchor = new Vector3(0.5f, TorchWallLift, 0.5f - TorchWallOffset);
+                rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, TorchTilt);
+                break;
+            case TorchMount.WallSouth:
+                anchor = new Vector3(0.5f, TorchWallLift, 0.5f + TorchWallOffset);
+                rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -TorchTilt);
+                break;
+            case TorchMount.WallWest:
+                anchor = new Vector3(0.5f - TorchWallOffset, TorchWallLift, 0.5f);
+                rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -TorchTilt);
+                break;
+            case TorchMount.WallEast:
+                anchor = new Vector3(0.5f + TorchWallOffset, TorchWallLift, 0.5f);
+                rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, TorchTilt);
+                break;
+        }
+
+        var corners = new Vector3[local.Length];
+        for (int i = 0; i < local.Length; i++)
+        {
+            corners[i] = origin + anchor + Vector3.Transform(local[i], rotation);
+        }
+
+        return corners;
+    }
+
+    private static void AddTorchFlame(MeshData data, Vector3[] corners, AtlasRegion region, float light)
+    {
+        Vector3 topCenter = (corners[2] + corners[3] + corners[6] + corners[7]) * 0.25f;
+        Vector3 basePos = topCenter + new Vector3(0f, TorchFlameLift, 0f);
+        float half = TorchFlameWidth * 0.5f;
+        float height = TorchFlameHeight;
+
+        Vector2 uv0 = Vector2.Zero;
+        Vector2 uv1 = new Vector2(1f, 0f);
+        Vector2 uv2 = Vector2.One;
+        Vector2 uv3 = new Vector2(0f, 1f);
+        Vector2 atlasMin = region.Min;
+        Vector2 atlasSize = region.Max - region.Min;
+        Vector4 tint = Vector4.One;
+        float materialId = RenderMaterial.Torch;
+        var normal = Vector3.UnitY;
+
+        AddCrossQuad(data.CutoutVertices, data.CutoutIndices,
+            basePos + new Vector3(-half, 0f, -half),
+            basePos + new Vector3(half, 0f, half),
+            basePos + new Vector3(half, height, half),
+            basePos + new Vector3(-half, height, -half),
+            uv0, uv1, uv2, uv3,
+            atlasMin, atlasSize, light, tint, normal, materialId);
+
+        AddCrossQuad(data.CutoutVertices, data.CutoutIndices,
+            basePos + new Vector3(half, 0f, -half),
+            basePos + new Vector3(-half, 0f, half),
+            basePos + new Vector3(-half, height, half),
+            basePos + new Vector3(half, height, -half),
+            uv0, uv1, uv2, uv3,
+            atlasMin, atlasSize, light, tint, normal, materialId);
+    }
+
+    private static TorchMount GetTorchMount(BlockId id)
+    {
+        return id switch
+        {
+            BlockId.TorchWallNorth => TorchMount.WallNorth,
+            BlockId.TorchWallSouth => TorchMount.WallSouth,
+            BlockId.TorchWallWest => TorchMount.WallWest,
+            BlockId.TorchWallEast => TorchMount.WallEast,
+            _ => TorchMount.Floor
+        };
+    }
+
+    private enum TorchMount
+    {
+        Floor,
+        WallNorth,
+        WallSouth,
+        WallWest,
+        WallEast
     }
 }

@@ -11,12 +11,14 @@ public readonly struct RaycastResult
     public readonly bool Hit;
     public readonly BlockCoord Block;
     public readonly BlockCoord Adjacent;
+    public readonly float Distance;
 
-    public RaycastResult(bool hit, BlockCoord block, BlockCoord adjacent)
+    public RaycastResult(bool hit, BlockCoord block, BlockCoord adjacent, float distance)
     {
         Hit = hit;
         Block = block;
         Adjacent = adjacent;
+        Distance = distance;
     }
 }
 
@@ -26,7 +28,7 @@ public static class WorldRaycaster
     {
         if (direction.LengthSquared() < 1e-6f)
         {
-            return new RaycastResult(false, new BlockCoord(), new BlockCoord());
+            return new RaycastResult(false, new BlockCoord(), new BlockCoord(), float.PositiveInfinity);
         }
 
         direction = Vector3.Normalize(direction);
@@ -68,7 +70,7 @@ public static class WorldRaycaster
                 {
                     adjacent = new BlockCoord(x, y, z - stepZ);
                 }
-                return new RaycastResult(true, hit, adjacent);
+                return new RaycastResult(true, hit, adjacent, dist);
             }
 
             if (tMaxX < tMaxY)
@@ -107,7 +109,7 @@ public static class WorldRaycaster
             }
         }
 
-        return new RaycastResult(false, new BlockCoord(), new BlockCoord());
+        return new RaycastResult(false, new BlockCoord(), new BlockCoord(), float.PositiveInfinity);
     }
 
     private static float IntBound(float s, float ds)

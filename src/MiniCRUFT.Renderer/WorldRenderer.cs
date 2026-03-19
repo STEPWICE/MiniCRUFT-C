@@ -15,10 +15,11 @@ using System.Text;
 
 namespace MiniCRUFT.Renderer;
 
-public sealed class WorldRenderer : IDisposable
+public sealed class WorldRenderer : IDisposable, IChunkRenderQueue, IParticleEmitter
 {
     private readonly RenderDevice _device;
     private readonly TextureAtlas _atlas;
+    private readonly TextureAtlasAnimator _textureAtlasAnimator;
     private readonly ChunkMeshBuilder _meshBuilder;
     private readonly Dictionary<ChunkCoord, ChunkMesh> _meshes = new();
     private readonly BlockingCollection<MeshJob> _meshQueue = new();
@@ -27,6 +28,7 @@ public sealed class WorldRenderer : IDisposable
     private readonly ConcurrentDictionary<ChunkCoord, byte> _ignoreResults = new();
     private readonly ConcurrentQueue<(ChunkCoord coord, MeshData data)> _meshResults = new();
     private readonly List<Task> _meshWorkers = new();
+    private readonly List<(ChunkCoord coord, ChunkMesh mesh, float distance)> _transparentMeshes = new();
     private readonly CancellationTokenSource _cts = new();
 
     private readonly DeviceBuffer _cameraBuffer;
@@ -40,12 +42,19 @@ public sealed class WorldRenderer : IDisposable
     private readonly SkyRenderer _skyRenderer;
     private readonly CloudRenderer _cloudRenderer;
     private readonly LodTerrainRenderer _lodRenderer;
+    private readonly MobRenderer _mobRenderer;
+    private readonly TntFuseRenderer _tntFuseRenderer;
+    private readonly FirstPersonRenderer _firstPersonRenderer;
+    private readonly SelectionOverlayRenderer _selectionOverlayRenderer;
+    private readonly ParticleSystem _particles;
+    private readonly WeatherOverlayRenderer _weatherOverlayRenderer;
     private readonly bool _useRowMajorMatrices;
     private bool _disableFrustum;
     private readonly RenderConfig _renderConfig;
     private readonly AtmosphereConfig _atmosphereConfig;
+    private static readonly Comparison<(ChunkCoord coord, ChunkMesh mesh, float distance)> TransparentMeshComparison = CompareTransparentMesh;
 
-    public WorldRenderer(RenderDevice device, AssetStore assets, RenderConfig renderConfig, AtmosphereConfig atmosphereConfig, UiConfig uiConfig, WorldHeightSampler heightSampler, WorldGenSettings worldSettings)
+    public WorldRenderer(RenderDevice device, AssetStore assets, RenderConfig renderConfig, FirstPersonConfig firstPersonConfig, AtmosphereConfig atmosphereConfig, WeatherConfig weatherConfig, ParticleConfig particleConfig, UiConfig uiConfig, WorldHeightSampler heightSampler, WorldGenSettings worldSettings)
     {
         _device = device;
         _renderConfig = renderConfig;
@@ -59,7 +68,10 @@ public sealed class WorldRenderer : IDisposable
             textureNames.Add(def.TextureBottom);
             textureNames.Add(def.TextureSide);
         }
+        textureNames.Add("fire_0");
+        textureNames.Add("fire_1");
         _atlas = TextureAtlas.Build(device.GraphicsDevice, assets, renderConfig, textureNames);
+        _textureAtlasAnimator = new TextureAtlasAnimator(device.GraphicsDevice, _atlas);
         _meshBuilder = new ChunkMeshBuilder(_atlas, renderConfig, atmosphereConfig);
 
         uint cameraSize = (uint)Marshal.SizeOf<CameraUniform>();
@@ -84,8 +96,14 @@ public sealed class WorldRenderer : IDisposable
         _skyRenderer = new SkyRenderer(device.GraphicsDevice, assets);
         _cloudRenderer = new CloudRenderer(device.GraphicsDevice, assets, renderConfig, atmosphereConfig);
         _lodRenderer = new LodTerrainRenderer(device.GraphicsDevice, heightSampler, worldSettings, renderConfig, atmosphereConfig);
+        _mobRenderer = new MobRenderer(device.GraphicsDevice, assets, _cameraBuffer);
+        _tntFuseRenderer = new TntFuseRenderer(device.GraphicsDevice, _atlas);
+        _firstPersonRenderer = new FirstPersonRenderer(device.GraphicsDevice, _cameraBuffer, _atlas, renderConfig, firstPersonConfig);
+        _selectionOverlayRenderer = new SelectionOverlayRenderer(device.GraphicsDevice, _cameraBuffer);
+        _particles = new ParticleSystem(device.GraphicsDevice, _atlas, particleConfig);
+        _weatherOverlayRenderer = new WeatherOverlayRenderer(device.GraphicsDevice, weatherConfig);
 
-        StartMeshWorkers(2);
+        StartMeshWorkers(Math.Max(1, renderConfig.ChunkMeshWorkers));
     }
 
     private static ShaderSetDescription CreateShaders(GraphicsDevice device)
@@ -105,6 +123,9 @@ layout(set = 0, binding = 0) uniform CameraBuffer
     vec4 Misc;
     vec4 HorizonParams;
     vec4 LightingParams;
+    vec4 FaceShadingParams;
+    vec4 PaletteSand;
+    vec4 PaletteStone;
     vec4 CutoutParams;
 };
 
@@ -124,6 +145,7 @@ layout(location = 3) out float fsin_Light;
 layout(location = 4) out vec4 fsin_Tint;
 layout(location = 5) out vec3 fsin_WorldPos;
 layout(location = 6) out float fsin_MaterialId;
+layout(location = 7) out vec3 fsin_Normal;
 
 void main()
 {
@@ -134,6 +156,7 @@ void main()
     fsin_Tint = Tint;
     fsin_WorldPos = Position;
     fsin_MaterialId = MaterialId;
+    fsin_Normal = Normal;
     gl_Position = ViewProjection * vec4(Position, 1.0);
 }
 ";
@@ -151,6 +174,9 @@ layout(set = 0, binding = 0) uniform CameraBuffer
     vec4 Misc;
     vec4 HorizonParams;
     vec4 LightingParams;
+    vec4 FaceShadingParams;
+    vec4 PaletteSand;
+    vec4 PaletteStone;
     vec4 CutoutParams;
 };
 
@@ -161,6 +187,7 @@ layout(location = 3) in float fsin_Light;
 layout(location = 4) in vec4 fsin_Tint;
 layout(location = 5) in vec3 fsin_WorldPos;
 layout(location = 6) in float fsin_MaterialId;
+layout(location = 7) in vec3 fsin_Normal;
 
 layout(location = 0) out vec4 fsout_Color;
 
@@ -215,14 +242,19 @@ void main()
 {
     const float WaterDepthScale = 0.6;
     const float WaterDeepFactor = 0.35;
+    const float LavaDepthScale = 0.45;
+    const float LavaDeepFactor = 0.85;
     const float GlassDarken = 0.7;
     const float GlassFogMix = 0.1;
-    float scroll = 0.0;
-    if (fsin_Tint.a < 0.999)
-    {
-        scroll = fract(FogParams.z * Misc.y);
-    }
-    vec2 tiled = fract(fsin_LocalUV + vec2(scroll, scroll));
+    const float LavaMaterialId = 6.0;
+    const float TorchMaterialId = 7.0;
+    const float TorchEmissiveFloor = 0.9;
+    const float LavaEmissiveFloor = 0.95;
+    bool isFoliage = fsin_MaterialId > 0.5 && fsin_MaterialId < 1.5;
+    bool isWater = fsin_MaterialId > 1.5 && fsin_MaterialId < 2.5;
+    bool isLava = abs(fsin_MaterialId - LavaMaterialId) < 0.5;
+    bool isTorch = abs(fsin_MaterialId - TorchMaterialId) < 0.5;
+    vec2 tiled = fract(fsin_LocalUV);
     tiled.y = 1.0 - tiled.y;
     tiled = clamp(tiled, vec2(0.0001), vec2(0.9999));
     vec2 uv = fsin_AtlasMin + tiled * fsin_AtlasSize;
@@ -230,12 +262,45 @@ void main()
     vec4 tex = texture(sampler2D(AtlasTexture, AtlasSampler), uv);
     float sun = clamp(CameraPos.w, 0.05, 1.0);
     float light = clamp(fsin_Light * mix(LightingParams.y, 1.0, sun), LightingParams.x, 1.0);
+    float shade = 1.0;
+    if (fsin_Normal.y > 0.5)
+    {
+        shade = FaceShadingParams.x;
+    }
+    else if (fsin_Normal.y < -0.5)
+    {
+        shade = FaceShadingParams.z;
+    }
+    else
+    {
+        shade = FaceShadingParams.y;
+    }
+    shade = mix(1.0, shade, FaceShadingParams.w);
+    light *= shade;
+    float emissiveFloor = 0.0;
+    if (isTorch)
+    {
+        emissiveFloor = TorchEmissiveFloor;
+    }
+    else if (isLava)
+    {
+        emissiveFloor = LavaEmissiveFloor;
+    }
+    light = max(light, emissiveFloor);
     vec3 tint = fsin_Tint.rgb;
     vec3 rgb = tex.rgb * light * tint;
+    bool isSand = fsin_MaterialId > 3.5 && fsin_MaterialId < 4.5;
+    bool isStone = fsin_MaterialId > 4.5 && fsin_MaterialId < 5.5;
+    if (isSand)
+    {
+        rgb = mix(rgb, PaletteSand.rgb, PaletteSand.a);
+    }
+    else if (isStone)
+    {
+        rgb = mix(rgb, PaletteStone.rgb, PaletteStone.a);
+    }
     float dist = length(fsin_WorldPos - CameraPos.xyz);
     float horizonMask = smoothstep(FogParams.x, FogParams.y, dist);
-    bool isFoliage = fsin_MaterialId > 0.5 && fsin_MaterialId < 1.5;
-    bool isWater = fsin_MaterialId > 1.5 && fsin_MaterialId < 2.5;
     float alpha = tex.a * fsin_Tint.a;
     if (fsin_MaterialId < 0.5)
     {
@@ -260,6 +325,12 @@ void main()
     {
         float depth = clamp(dist / max(FogParams.y * WaterDepthScale, 1.0), 0.0, 1.0);
         vec3 deep = tint * WaterDeepFactor;
+        rgb = mix(rgb, deep, depth);
+    }
+    else if (isLava)
+    {
+        float depth = clamp(dist / max(FogParams.y * LavaDepthScale, 1.0), 0.0, 1.0);
+        vec3 deep = tint * LavaDeepFactor;
         rgb = mix(rgb, deep, depth);
     }
     else if (fsin_Tint.a < 0.999)
@@ -294,6 +365,9 @@ cbuffer CameraBuffer : register(b0)
     float4 Misc;
     float4 HorizonParams;
     float4 LightingParams;
+    float4 FaceShadingParams;
+    float4 PaletteSand;
+    float4 PaletteStone;
     float4 CutoutParams;
 };
 
@@ -319,6 +393,7 @@ struct VSOutput
     float4 Tint     : TEXCOORD4;
     float3 WorldPos : TEXCOORD5;
     float  MaterialId : TEXCOORD6;
+    float3 Normal : TEXCOORD7;
 };
 
 VSOutput main(VSInput input)
@@ -331,6 +406,7 @@ VSOutput main(VSInput input)
     output.Tint = input.Tint;
     output.WorldPos = input.Position;
     output.MaterialId = input.MaterialId;
+    output.Normal = input.Normal;
     output.Position = mul(float4(input.Position, 1.0), ViewProjection);
     return output;
 }";
@@ -348,6 +424,9 @@ cbuffer CameraBuffer : register(b0)
     float4 Misc;
     float4 HorizonParams;
     float4 LightingParams;
+    float4 FaceShadingParams;
+    float4 PaletteSand;
+    float4 PaletteStone;
     float4 CutoutParams;
 };
 
@@ -361,6 +440,7 @@ struct PSInput
     float4 Tint     : TEXCOORD4;
     float3 WorldPos : TEXCOORD5;
     float  MaterialId : TEXCOORD6;
+    float3 Normal : TEXCOORD7;
 };
 
 float ComputeFogFactor(float dist)
@@ -415,14 +495,19 @@ float4 main(PSInput input) : SV_Target
 {
     const float WaterDepthScale = 0.6;
     const float WaterDeepFactor = 0.35;
+    const float LavaDepthScale = 0.45;
+    const float LavaDeepFactor = 0.85;
     const float GlassDarken = 0.7;
     const float GlassFogMix = 0.1;
-    float scroll = 0.0;
-    if (input.Tint.a < 0.999)
-    {
-        scroll = frac(FogParams.z * Misc.y);
-    }
-    float2 tiled = frac(input.LocalUV + float2(scroll, scroll));
+    const float LavaMaterialId = 6.0;
+    const float TorchMaterialId = 7.0;
+    const float TorchEmissiveFloor = 0.9;
+    const float LavaEmissiveFloor = 0.95;
+    bool isFoliage = input.MaterialId > 0.5 && input.MaterialId < 1.5;
+    bool isWater = input.MaterialId > 1.5 && input.MaterialId < 2.5;
+    bool isLava = abs(input.MaterialId - LavaMaterialId) < 0.5;
+    bool isTorch = abs(input.MaterialId - TorchMaterialId) < 0.5;
+    float2 tiled = frac(input.LocalUV);
     tiled.y = 1.0 - tiled.y;
     tiled = clamp(tiled, 0.0001, 0.9999);
     float2 uv = input.AtlasMin + tiled * input.AtlasSize;
@@ -430,12 +515,45 @@ float4 main(PSInput input) : SV_Target
     float4 tex = AtlasTexture.Sample(AtlasSampler, uv);
     float sun = clamp(CameraPos.w, 0.05, 1.0);
     float light = clamp(input.Light * lerp(LightingParams.y, 1.0, sun), LightingParams.x, 1.0);
+    float shade = 1.0;
+    if (input.Normal.y > 0.5)
+    {
+        shade = FaceShadingParams.x;
+    }
+    else if (input.Normal.y < -0.5)
+    {
+        shade = FaceShadingParams.z;
+    }
+    else
+    {
+        shade = FaceShadingParams.y;
+    }
+    shade = lerp(1.0, shade, FaceShadingParams.w);
+    light *= shade;
+    float emissiveFloor = 0.0;
+    if (isTorch)
+    {
+        emissiveFloor = TorchEmissiveFloor;
+    }
+    else if (isLava)
+    {
+        emissiveFloor = LavaEmissiveFloor;
+    }
+    light = max(light, emissiveFloor);
     float3 tint = input.Tint.rgb;
     float3 rgb = tex.rgb * light * tint;
+    bool isSand = input.MaterialId > 3.5 && input.MaterialId < 4.5;
+    bool isStone = input.MaterialId > 4.5 && input.MaterialId < 5.5;
+    if (isSand)
+    {
+        rgb = lerp(rgb, PaletteSand.rgb, PaletteSand.a);
+    }
+    else if (isStone)
+    {
+        rgb = lerp(rgb, PaletteStone.rgb, PaletteStone.a);
+    }
     float dist = length(input.WorldPos - CameraPos.xyz);
     float horizonMask = smoothstep(FogParams.x, FogParams.y, dist);
-    bool isFoliage = input.MaterialId > 0.5 && input.MaterialId < 1.5;
-    bool isWater = input.MaterialId > 1.5 && input.MaterialId < 2.5;
     float alpha = tex.a * input.Tint.a;
     if (input.MaterialId < 0.5)
     {
@@ -460,6 +578,12 @@ float4 main(PSInput input) : SV_Target
     {
         float depth = saturate(dist / max(FogParams.y * WaterDepthScale, 1.0));
         float3 deep = tint * WaterDeepFactor;
+        rgb = lerp(rgb, deep, depth);
+    }
+    else if (isLava)
+    {
+        float depth = saturate(dist / max(FogParams.y * LavaDepthScale, 1.0));
+        float3 deep = tint * LavaDeepFactor;
         rgb = lerp(rgb, deep, depth);
     }
     else if (input.Tint.a < 0.999)
@@ -541,6 +665,12 @@ float4 main(PSInput input) : SV_Target
         {
             _meshQueue.Add(job);
         }
+    }
+
+    public void RefreshChunk(Chunk chunk, ChunkNeighborhood neighbors)
+    {
+        // Keep chunk rebuilds on the worker queue to avoid main-thread stalls.
+        EnqueueChunk(chunk, neighbors, highPriority: true);
     }
 
     public void RemoveChunkMesh(ChunkCoord coord)
@@ -640,18 +770,85 @@ float4 main(PSInput input) : SV_Target
         _lodRenderer.UpdateMeshes();
     }
 
+    public void Update(float dt, float rainIntensity, int width, int height)
+    {
+        _textureAtlasAnimator.Update(dt);
+        _particles.Update(dt);
+        _weatherOverlayRenderer.Update(dt, rainIntensity, width, height);
+    }
+
+    public void EmitBlockBreakParticles(BlockId block, Vector3 position, Vector3 motion)
+    {
+        _particles.EmitBlockBreak(block, position, motion);
+    }
+
+    public void EmitBlockPlaceParticles(BlockId block, Vector3 position, Vector3 motion)
+    {
+        _particles.EmitBlockPlace(block, position, motion);
+    }
+
+    public void EmitStepParticles(BlockId block, Vector3 position, Vector3 motion, bool sprinting)
+    {
+        _particles.EmitStep(block, position, motion, sprinting);
+    }
+
+    public void EmitJumpParticles(BlockId block, Vector3 position, Vector3 motion)
+    {
+        _particles.EmitJump(block, position, motion);
+    }
+
+    public void EmitMobAttackParticles(MobType type, Vector3 position, Vector3 motion, bool elite = false, EliteMobVariant eliteVariant = EliteMobVariant.None, float intensity = 1f)
+    {
+        _particles.EmitMobAttack(type, position, motion, elite, eliteVariant, intensity);
+    }
+
+    public void EmitMobHurtParticles(MobType type, Vector3 position, Vector3 motion, bool elite = false, EliteMobVariant eliteVariant = EliteMobVariant.None, float intensity = 1f)
+    {
+        _particles.EmitMobHurt(type, position, motion, elite, eliteVariant, intensity);
+    }
+
+    public void EmitMobDeathParticles(MobType type, Vector3 position, Vector3 motion, bool elite = false, EliteMobVariant eliteVariant = EliteMobVariant.None, float intensity = 1f)
+    {
+        _particles.EmitMobDeath(type, position, motion, elite, eliteVariant, intensity);
+    }
+
+    public void EmitExplosionParticles(Vector3 position, int affectedBlocks, float intensity = 1f)
+    {
+        _particles.EmitExplosionParticles(position, affectedBlocks, intensity);
+    }
+
+    public void EmitFireParticles(FireEventKind kind, Vector3 position, float intensity = 1f)
+    {
+        _particles.EmitFireParticles(kind, position, intensity);
+    }
+
     public void Draw(Camera camera, HudState hud, AtmosphereFrame atmosphere)
+    {
+        Draw(camera, hud, atmosphere, Array.Empty<MobRenderInstance>(), Array.Empty<TntRenderInstance>(), default, default);
+    }
+
+    public void Draw(Camera camera, HudState hud, AtmosphereFrame atmosphere, IReadOnlyList<MobRenderInstance> mobs)
+    {
+        Draw(camera, hud, atmosphere, mobs, Array.Empty<TntRenderInstance>(), default, default);
+    }
+
+    public void Draw(Camera camera, HudState hud, AtmosphereFrame atmosphere, IReadOnlyList<MobRenderInstance> mobs, IReadOnlyList<TntRenderInstance> tnts, SelectionState selectionState, FirstPersonRenderState firstPersonState)
     {
         camera.UpdateMatrices();
         var viewProj = camera.View * camera.Projection;
         var matrix = _useRowMajorMatrices ? viewProj : Matrix4x4.Transpose(viewProj);
-        var fogParams = new Vector4(_renderConfig.FogStart, _renderConfig.FogEnd, atmosphere.TimeSeconds, _renderConfig.LinearFog ? 0f : 1f);
-        var cameraPos = new Vector4(camera.Position, atmosphere.SunIntensity);
-        var misc = new Vector4(0.05f, _atmosphereConfig.WaterUvSpeed, _renderConfig.BiomeTintStrength, _renderConfig.Foliage.CutoutAlphaThreshold);
+        var fogParams = new Vector4(atmosphere.FogStart, atmosphere.FogEnd, atmosphere.TimeSeconds, _renderConfig.LinearFog ? 0f : 1f);
+        var cameraPos = new Vector4(camera.Position, Math.Clamp(atmosphere.SunIntensity * (1f - atmosphere.RainIntensity * 0.12f), 0.05f, 1f));
+        var misc = new Vector4(0.05f, _atmosphereConfig.WaterUvSpeed, _atmosphereConfig.LavaUvSpeed, _renderConfig.Foliage.CutoutAlphaThreshold);
         var horizon = new Vector4(_renderConfig.Fog.HorizonBlendStrength, _renderConfig.Fog.HorizonBlendPower, 0f, 0f);
         var lighting = new Vector4(_renderConfig.MinLight, _renderConfig.SunLightMin, _renderConfig.Lod.ColorFogBlend, 0f);
+        var faceShading = new Vector4(_renderConfig.FaceShading.Top, _renderConfig.FaceShading.Side, _renderConfig.FaceShading.Bottom, _renderConfig.FaceShading.Strength);
+        var sandTint = ColorSpace.ToLinear(_renderConfig.Palette.SandTint.ToVector3());
+        var stoneTint = ColorSpace.ToLinear(_renderConfig.Palette.StoneTint.ToVector3());
+        var paletteSand = new Vector4(sandTint, _renderConfig.Palette.SandStrength);
+        var paletteStone = new Vector4(stoneTint, _renderConfig.Palette.StoneStrength);
         var cutoutParams = new Vector4(_renderConfig.Foliage.DitherStrength, _renderConfig.Foliage.DitherScale, 0f, 0f);
-        var uniform = new CameraUniform(matrix, atmosphere.FogColor, fogParams, cameraPos, misc, horizon, lighting, cutoutParams);
+        var uniform = new CameraUniform(matrix, atmosphere.FogColor, fogParams, cameraPos, misc, horizon, lighting, faceShading, paletteSand, paletteStone, cutoutParams);
         _device.GraphicsDevice.UpdateBuffer(_cameraBuffer, 0, ref uniform);
         _lodRenderer.Update(camera.Position);
         _lodRenderer.UpdateUniform(uniform);
@@ -703,8 +900,8 @@ float4 main(PSInput input) : SV_Target
             Log.Warn("Frustum culling disabled due to zero visible chunks.");
         }
 
-        var cutoutMisc = new Vector4(_renderConfig.CutoutAlphaThreshold, _atmosphereConfig.WaterUvSpeed, _renderConfig.BiomeTintStrength, _renderConfig.Foliage.CutoutAlphaThreshold);
-        var cutoutUniform = new CameraUniform(matrix, atmosphere.FogColor, fogParams, cameraPos, cutoutMisc, horizon, lighting, cutoutParams);
+        var cutoutMisc = new Vector4(_renderConfig.CutoutAlphaThreshold, _atmosphereConfig.WaterUvSpeed, _atmosphereConfig.LavaUvSpeed, _renderConfig.Foliage.CutoutAlphaThreshold);
+        var cutoutUniform = new CameraUniform(matrix, atmosphere.FogColor, fogParams, cameraPos, cutoutMisc, horizon, lighting, faceShading, paletteSand, paletteStone, cutoutParams);
         _device.GraphicsDevice.UpdateBuffer(_cameraBuffer, 0, ref cutoutUniform);
 
         commandList.SetPipeline(_cutoutPipeline);
@@ -731,6 +928,8 @@ float4 main(PSInput input) : SV_Target
             commandList.DrawIndexed(mesh.Cutout.IndexCount, 1, 0, 0, 0);
         }
 
+        _mobRenderer.Draw(commandList, camera, uniform, mobs);
+
         _cloudRenderer.Update(camera.Position);
         _cloudRenderer.Draw(commandList, camera, atmosphere);
 
@@ -739,7 +938,7 @@ float4 main(PSInput input) : SV_Target
         commandList.SetPipeline(_transparentPipeline);
         commandList.SetGraphicsResourceSet(0, _resourceSet);
 
-        var transparentList = new List<(ChunkCoord coord, ChunkMesh mesh, float distance)>();
+        _transparentMeshes.Clear();
         foreach (var (coord, mesh) in _meshes)
         {
             if (mesh.Transparent.IndexCount == 0)
@@ -749,12 +948,15 @@ float4 main(PSInput input) : SV_Target
 
             var center = new Vector3(coord.X * Chunk.SizeX + Chunk.SizeX * 0.5f, Chunk.SizeY * 0.5f, coord.Z * Chunk.SizeZ + Chunk.SizeZ * 0.5f);
             float dist = Vector3.DistanceSquared(center, camera.Position);
-            transparentList.Add((coord, mesh, dist));
+            _transparentMeshes.Add((coord, mesh, dist));
         }
 
-        transparentList.Sort((a, b) => b.distance.CompareTo(a.distance));
+        if (_transparentMeshes.Count > 1)
+        {
+            _transparentMeshes.Sort(TransparentMeshComparison);
+        }
 
-        foreach (var item in transparentList)
+        foreach (var item in _transparentMeshes)
         {
             var coord = item.coord;
             var mesh = item.mesh;
@@ -773,6 +975,12 @@ float4 main(PSInput input) : SV_Target
             commandList.DrawIndexed(mesh.Transparent.IndexCount, 1, 0, 0, 0);
         }
 
+        _particles.Draw(commandList, camera, _device.Window.Width, _device.Window.Height);
+        _selectionOverlayRenderer.Draw(commandList, selectionState);
+        _firstPersonRenderer.Draw(commandList, camera, firstPersonState);
+        _tntFuseRenderer.Draw(commandList, camera, _device.Window.Width, _device.Window.Height, tnts);
+        _weatherOverlayRenderer.Draw(commandList, _device.Window.Width, _device.Window.Height, atmosphere);
+
         _uiRenderer.Draw(commandList, _device.GraphicsDevice.MainSwapchain.Framebuffer.OutputDescription, hud, _device.Window.Width, _device.Window.Height);
 
         commandList.End();
@@ -787,7 +995,12 @@ float4 main(PSInput input) : SV_Target
         _meshQueueHigh.CompleteAdding();
         try
         {
-            Task.WaitAll(_meshWorkers.ToArray(), 2000);
+            var deadline = Environment.TickCount64 + 2000;
+            for (int i = 0; i < _meshWorkers.Count; i++)
+            {
+                int remaining = (int)Math.Max(0, deadline - Environment.TickCount64);
+                _meshWorkers[i].Wait(remaining);
+            }
         }
         catch
         {
@@ -804,6 +1017,12 @@ float4 main(PSInput input) : SV_Target
         _resourceSet.Dispose();
         _resourceLayout.Dispose();
         _cameraBuffer.Dispose();
+        _mobRenderer.Dispose();
+        _tntFuseRenderer.Dispose();
+        _firstPersonRenderer.Dispose();
+        _selectionOverlayRenderer.Dispose();
+        _particles.Dispose();
+        _weatherOverlayRenderer.Dispose();
         _atlas.Dispose();
         _uiRenderer.Dispose();
         _skyRenderer.Dispose();
@@ -826,6 +1045,11 @@ float4 main(PSInput input) : SV_Target
             Priority = priority;
         }
     }
+
+    private static int CompareTransparentMesh((ChunkCoord coord, ChunkMesh mesh, float distance) left, (ChunkCoord coord, ChunkMesh mesh, float distance) right)
+    {
+        return right.distance.CompareTo(left.distance);
+    }
 }
 
 public readonly struct CameraUniform
@@ -837,9 +1061,12 @@ public readonly struct CameraUniform
     public readonly Vector4 Misc;
     public readonly Vector4 HorizonParams;
     public readonly Vector4 LightingParams;
+    public readonly Vector4 FaceShadingParams;
+    public readonly Vector4 PaletteSand;
+    public readonly Vector4 PaletteStone;
     public readonly Vector4 CutoutParams;
 
-    public CameraUniform(Matrix4x4 viewProjection, Vector4 fogColor, Vector4 fogParams, Vector4 cameraPos, Vector4 misc, Vector4 horizonParams, Vector4 lightingParams, Vector4 cutoutParams)
+    public CameraUniform(Matrix4x4 viewProjection, Vector4 fogColor, Vector4 fogParams, Vector4 cameraPos, Vector4 misc, Vector4 horizonParams, Vector4 lightingParams, Vector4 faceShadingParams, Vector4 paletteSand, Vector4 paletteStone, Vector4 cutoutParams)
     {
         ViewProjection = viewProjection;
         FogColor = fogColor;
@@ -848,6 +1075,9 @@ public readonly struct CameraUniform
         Misc = misc;
         HorizonParams = horizonParams;
         LightingParams = lightingParams;
+        FaceShadingParams = faceShadingParams;
+        PaletteSand = paletteSand;
+        PaletteStone = paletteStone;
         CutoutParams = cutoutParams;
     }
 }

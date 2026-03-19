@@ -11,6 +11,7 @@ public sealed class BlockDefinition
     public TintType TintType { get; }
     public RenderMode RenderMode { get; }
     public bool IsFoliage { get; }
+    public bool IsPlaceable { get; }
     public string TextureTop { get; }
     public string TextureBottom { get; }
     public string TextureSide { get; }
@@ -27,7 +28,8 @@ public sealed class BlockDefinition
         bool? blocksSkyLight = null,
         TintType tintType = TintType.None,
         RenderMode renderMode = RenderMode.Opaque,
-        bool isFoliage = false)
+        bool isFoliage = false,
+        bool isPlaceable = true)
     {
         Id = id;
         Name = name;
@@ -41,6 +43,7 @@ public sealed class BlockDefinition
         TintType = tintType;
         RenderMode = renderMode;
         IsFoliage = isFoliage;
+        IsPlaceable = isPlaceable;
     }
 
     public string GetTextureName(BlockFace face)

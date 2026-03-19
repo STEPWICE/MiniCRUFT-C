@@ -35,15 +35,31 @@ public sealed class SpriteAtlas : IDisposable
 
     public static SpriteAtlas Build(GraphicsDevice device, AssetStore assets, IReadOnlyList<SpriteSource> sources, bool repeatSampler)
     {
-        var images = new List<(string name, Image<Rgba32> img)>();
+        return Build(device, assets, sources, repeatSampler, null);
+    }
+
+    public static SpriteAtlas Build(GraphicsDevice device, AssetStore assets, IReadOnlyList<SpriteSource> sources, bool repeatSampler, int maxSpriteSize)
+    {
+        return Build(device, assets, sources, repeatSampler, maxSpriteSize <= 0 ? null : maxSpriteSize);
+    }
+
+    private static SpriteAtlas Build(GraphicsDevice device, AssetStore assets, IReadOnlyList<SpriteSource> sources, bool repeatSampler, int? maxSpriteSize)
+    {
+        var images = new List<(string name, Image<Rgba32> img)>(sources.Count + 1);
+        var imagesByName = new Dictionary<string, Image<Rgba32>>(StringComparer.OrdinalIgnoreCase);
         foreach (var source in sources)
         {
             using var stream = assets.OpenStream(source.RelativePath);
             var img = Image.Load<Rgba32>(stream);
+            NormalizeSprite(img, maxSpriteSize);
             images.Add((source.Name, img));
+            imagesByName[source.Name] = img;
         }
 
-        images.Add(("missing", BuildMissingTexture(16)));
+        var missing = BuildMissingTexture(16);
+        NormalizeSprite(missing, maxSpriteSize);
+        images.Add(("missing", missing));
+        imagesByName["missing"] = missing;
 
         const int padding = 2;
         int atlasWidth = 512;
@@ -63,13 +79,18 @@ public sealed class SpriteAtlas : IDisposable
         atlasWidth = NextPow2(atlasWidth);
         atlasHeight = NextPow2(atlasHeight);
 
+        if (atlasWidth <= 0 || atlasHeight <= 0)
+        {
+            throw new InvalidOperationException("SpriteAtlas build failed: invalid atlas dimensions.");
+        }
+
         var atlas = new Image<Rgba32>(atlasWidth, atlasHeight);
         var regions = new Dictionary<string, SpriteRegion>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var entry in placements)
         {
             var (name, placement) = (entry.Key, entry.Value);
-            var img = images.Find(x => x.name.Equals(name, StringComparison.OrdinalIgnoreCase)).img;
+            var img = imagesByName[name];
             atlas.Mutate(ctx => ctx.DrawImage(img, new SixLabors.ImageSharp.Point(placement.X, placement.Y), 1f));
 
             var min = new Vector2((float)placement.X / atlasWidth, (float)placement.Y / atlasHeight);
@@ -100,6 +121,27 @@ public sealed class SpriteAtlas : IDisposable
         atlas.Dispose();
 
         return new SpriteAtlas(texture, sampler, regions);
+    }
+
+    private static void NormalizeSprite(Image<Rgba32> img, int? maxSpriteSize)
+    {
+        if (!maxSpriteSize.HasValue)
+        {
+            return;
+        }
+
+        int target = maxSpriteSize.Value;
+        if (img.Width == target && img.Height == target)
+        {
+            return;
+        }
+
+        img.Mutate(ctx => ctx.Resize(new ResizeOptions
+        {
+            Size = new Size(target, target),
+            Mode = ResizeMode.Stretch,
+            Sampler = KnownResamplers.NearestNeighbor
+        }));
     }
 
     private static Dictionary<string, SpritePlacement> TryPack(List<(string name, Image<Rgba32> img)> images, int atlasWidth, int padding, out int atlasHeight)

@@ -12,21 +12,21 @@ namespace MiniCRUFT.Game;
 public sealed class ChunkManager
 {
     private readonly WorldType _world;
-    private readonly ChunkGenerationWorker _generator;
-    private readonly IChunkStorage _storage;
-    private readonly WorldRenderer _renderer;
+    private readonly IChunkGenerationQueue _generator;
+    private readonly IChunkLoadQueue _loader;
+    private readonly IChunkRenderQueue _renderer;
     private readonly ChunkSaveQueue _saveQueue;
     private readonly SaveConfig _saveConfig;
-    private readonly HashSet<ChunkCoord> _requested = new();
+    private readonly ChunkRequestTracker _chunkStates = new();
     private readonly HashSet<ChunkCoord> _renderRequested = new();
-    private readonly HashSet<ChunkCoord> _knownChunks = new();
-    private readonly HashSet<ChunkCoord> _missingLogged = new();
+    private readonly List<ChunkCoord> _loadedThisFrame = new();
+    private DateTime _lastMissingLog = DateTime.MinValue;
 
-    public ChunkManager(WorldType world, ChunkGenerationWorker generator, IChunkStorage storage, WorldRenderer renderer, ChunkSaveQueue saveQueue, SaveConfig saveConfig)
+    public ChunkManager(WorldType world, IChunkGenerationQueue generator, IChunkLoadQueue loader, IChunkRenderQueue renderer, ChunkSaveQueue saveQueue, SaveConfig saveConfig)
     {
         _world = world;
         _generator = generator;
-        _storage = storage;
+        _loader = loader;
         _renderer = renderer;
         _saveQueue = saveQueue;
         _saveConfig = saveConfig;
@@ -35,72 +35,14 @@ public sealed class ChunkManager
     public void Update(Vector3 playerPosition, int renderRadius, int preloadExtra)
     {
         var playerChunk = WorldType.ToChunkCoord(MathUtil.FloorToInt(playerPosition.X), MathUtil.FloorToInt(playerPosition.Z));
-        int genRadius = renderRadius + Math.Max(0, preloadExtra);
+        int generationRadius = renderRadius + Math.Max(0, preloadExtra);
 
-        foreach (var coord in EnumerateSpiral(genRadius))
-        {
-            var worldCoord = new ChunkCoord(playerChunk.X + coord.X, playerChunk.Z + coord.Z);
-            if (_world.GetChunk(worldCoord) != null)
-            {
-                if (IsWithinRadius(coord.X, coord.Z, renderRadius) && !_renderRequested.Contains(worldCoord))
-                {
-                    var chunk = _world.GetChunk(worldCoord);
-                    if (chunk != null)
-                    {
-                        _renderer.EnqueueChunk(chunk, ChunkNeighborhood.FromWorld(_world, chunk));
-                        _renderRequested.Add(worldCoord);
-                    }
-                }
-                continue;
-            }
+        _loadedThisFrame.Clear();
 
-            if (_requested.Contains(worldCoord))
-            {
-                continue;
-            }
-
-            var loaded = _storage.LoadChunk(worldCoord);
-            if (loaded != null)
-            {
-                _world.SetChunk(loaded);
-                if (IsWithinRadius(coord.X, coord.Z, renderRadius))
-                {
-                    _renderer.EnqueueChunk(loaded, ChunkNeighborhood.FromWorld(_world, loaded));
-                    _renderRequested.Add(worldCoord);
-                }
-            }
-            else
-            {
-                _generator.Enqueue(worldCoord);
-            }
-
-            _requested.Add(worldCoord);
-        }
-
-        for (int dz = -renderRadius; dz <= renderRadius; dz++)
-        {
-            for (int dx = -renderRadius; dx <= renderRadius; dx++)
-            {
-                var coord = new ChunkCoord(playerChunk.X + dx, playerChunk.Z + dz);
-                var chunk = _world.GetChunk(coord);
-                if (chunk == null)
-                {
-                    continue;
-                }
-
-                if (_knownChunks.Add(coord))
-                {
-                    MarkNeighborDirty(coord);
-                }
-
-                if (chunk.IsDirty)
-                {
-                    _renderer.EnqueueChunk(chunk, ChunkNeighborhood.FromWorld(_world, chunk));
-                }
-            }
-        }
-
-        EnsureChunksAround(playerChunk, renderRadius);
+        ProcessCompletedChunks();
+        EnsureChunksAround(playerChunk, generationRadius);
+        RefreshLoadedChunks();
+        UpdateVisibleChunks(playerChunk, renderRadius);
         UnloadChunks(playerChunk, renderRadius);
     }
 
@@ -109,86 +51,146 @@ public sealed class ChunkManager
         _saveQueue.EnqueueDirty(_world.Chunks);
     }
 
-    public void ProcessChanges(IWorldChangeQueue changeQueue, ChunkSaveQueue saveQueue)
+    public void ProcessChanges(IWorldChangeQueue changeQueue, ChunkSaveQueue saveQueue, FallingBlockSystem? fallingSystem = null, FluidSystem? fluidSystem = null, FireSystem? fireSystem = null, TntSystem? tntSystem = null)
     {
-        while (changeQueue.TryDequeue(out var change))
+        var refreshCoords = new HashSet<ChunkCoord>();
+        int budget = Math.Max(1, _saveConfig.MaxBlockChangesPerFrame);
+        while (budget-- > 0 && changeQueue.TryDequeue(out var change))
         {
-            NotifyBlockChanged(change.X, change.Y, change.Z);
+            fallingSystem?.NotifyBlockChanged(change);
+            fluidSystem?.NotifyBlockChanged(change);
+            fireSystem?.NotifyBlockChanged(change);
+            tntSystem?.NotifyBlockChanged(change);
             var coord = WorldType.ToChunkCoord(change.X, change.Z);
             var chunk = _world.GetChunk(coord);
             if (chunk != null)
             {
                 saveQueue.Enqueue(chunk);
+                refreshCoords.Add(coord);
+                AddRefreshCoords(refreshCoords, change, coord);
             }
         }
-    }
 
-    private static IEnumerable<(int X, int Z)> EnumerateSpiral(int radius)
-    {
-        yield return (0, 0);
-        for (int r = 1; r <= radius; r++)
+        foreach (var coord in refreshCoords)
         {
-            for (int x = -r; x <= r; x++)
+            var chunk = _world.GetChunk(coord);
+            if (chunk == null)
             {
-                yield return (x, -r);
-                if (r != 0)
-                {
-                    yield return (x, r);
-                }
+                continue;
             }
-            for (int z = -r + 1; z <= r - 1; z++)
-            {
-                yield return (-r, z);
-                if (r != 0)
-                {
-                    yield return (r, z);
-                }
-            }
+
+            _renderer.EnqueueChunk(chunk, ChunkNeighborhood.FromWorld(_world, chunk), highPriority: true);
         }
-    }
-
-    private static bool IsWithinRadius(int dx, int dz, int radius)
-    {
-        return Math.Abs(dx) <= radius && Math.Abs(dz) <= radius;
-    }
-
-    private void MarkNeighborDirty(ChunkCoord coord)
-    {
-        var north = _world.GetChunk(new ChunkCoord(coord.X, coord.Z - 1));
-        var south = _world.GetChunk(new ChunkCoord(coord.X, coord.Z + 1));
-        var east = _world.GetChunk(new ChunkCoord(coord.X + 1, coord.Z));
-        var west = _world.GetChunk(new ChunkCoord(coord.X - 1, coord.Z));
-
-        north?.MarkDirty();
-        south?.MarkDirty();
-        east?.MarkDirty();
-        west?.MarkDirty();
     }
 
     private void EnsureChunksAround(ChunkCoord center, int radius)
     {
+        int queued = 0;
         for (int dz = -radius; dz <= radius; dz++)
         {
             for (int dx = -radius; dx <= radius; dx++)
             {
                 var coord = new ChunkCoord(center.X + dx, center.Z + dz);
-                if (_world.GetChunk(coord) != null)
+                var chunk = _world.GetChunk(coord);
+                if (chunk != null)
+                {
+                    if (_chunkStates.MarkObservedLoaded(coord))
+                    {
+                        _loadedThisFrame.Add(coord);
+                    }
+                    continue;
+                }
+
+                if (_chunkStates.IsPending(coord))
                 {
                     continue;
                 }
 
-                _generator.Enqueue(coord);
-                if (_missingLogged.Add(coord))
+                if (!_chunkStates.TryMarkRequested(coord))
                 {
-                    Log.Warn($"Missing chunk {coord.X},{coord.Z} detected. Re-queued for generation.");
+                    continue;
                 }
+
+                try
+                {
+                    _loader.Enqueue(coord);
+                    _chunkStates.TryMarkInFlight(coord);
+                    queued++;
+                }
+                catch
+                {
+                    _chunkStates.Forget(coord);
+                    throw;
+                }
+            }
+        }
+
+        if (queued > 0)
+        {
+            var now = DateTime.UtcNow;
+            if ((now - _lastMissingLog).TotalSeconds > 2)
+            {
+                _lastMissingLog = now;
+                Log.Info($"Chunk requests queued: {queued} around {center.X},{center.Z}.");
+            }
+        }
+    }
+
+    private void RefreshLoadedChunks()
+    {
+        for (int i = 0; i < _loadedThisFrame.Count; i++)
+        {
+            RefreshNeighborChunks(_loadedThisFrame[i]);
+        }
+    }
+
+    private void RefreshNeighborChunks(ChunkCoord coord)
+    {
+        MarkNeighborChunkDirty(coord.X, coord.Z - 1);
+        MarkNeighborChunkDirty(coord.X, coord.Z + 1);
+        MarkNeighborChunkDirty(coord.X + 1, coord.Z);
+        MarkNeighborChunkDirty(coord.X - 1, coord.Z);
+    }
+
+    private void MarkNeighborChunkDirty(int chunkX, int chunkZ)
+    {
+        var chunk = _world.GetChunk(new ChunkCoord(chunkX, chunkZ));
+        if (chunk == null)
+        {
+            return;
+        }
+
+        chunk.MarkDirty();
+        chunk.MarkLightingDirty();
+    }
+
+    private void UpdateVisibleChunks(ChunkCoord center, int renderRadius)
+    {
+        for (int dz = -renderRadius; dz <= renderRadius; dz++)
+        {
+            for (int dx = -renderRadius; dx <= renderRadius; dx++)
+            {
+                var coord = new ChunkCoord(center.X + dx, center.Z + dz);
+                var chunk = _world.GetChunk(coord);
+                if (chunk == null)
+                {
+                    continue;
+                }
+
+                bool firstRender = _renderRequested.Add(coord);
+                if (!chunk.IsDirty && !firstRender)
+                {
+                    continue;
+                }
+
+                _renderer.EnqueueChunk(chunk, ChunkNeighborhood.FromWorld(_world, chunk), highPriority: true);
             }
         }
     }
 
     private void UnloadChunks(ChunkCoord center, int renderRadius)
     {
-        int unloadRadius = Math.Max(renderRadius, renderRadius + _saveConfig.UnloadExtraRadius);
+        int unloadRadius = renderRadius + _saveConfig.UnloadExtraRadius;
         foreach (var chunk in _world.Chunks)
         {
             int dx = chunk.ChunkX - center.X;
@@ -202,10 +204,8 @@ public sealed class ChunkManager
             _saveQueue.Enqueue(chunk);
             _renderer.RemoveChunkMesh(coord);
             _world.RemoveChunk(coord);
-            _requested.Remove(coord);
+            _chunkStates.Forget(coord);
             _renderRequested.Remove(coord);
-            _knownChunks.Remove(coord);
-            _missingLogged.Remove(coord);
         }
     }
 
@@ -238,6 +238,29 @@ public sealed class ChunkManager
         }
     }
 
+    private static void AddRefreshCoords(HashSet<ChunkCoord> refreshCoords, BlockChange change, ChunkCoord chunkCoord)
+    {
+        var (localX, localZ) = WorldType.ToLocalCoord(change.X, change.Z);
+
+        if (localX == 0)
+        {
+            refreshCoords.Add(new ChunkCoord(chunkCoord.X - 1, chunkCoord.Z));
+        }
+        else if (localX == Chunk.SizeX - 1)
+        {
+            refreshCoords.Add(new ChunkCoord(chunkCoord.X + 1, chunkCoord.Z));
+        }
+
+        if (localZ == 0)
+        {
+            refreshCoords.Add(new ChunkCoord(chunkCoord.X, chunkCoord.Z - 1));
+        }
+        else if (localZ == Chunk.SizeZ - 1)
+        {
+            refreshCoords.Add(new ChunkCoord(chunkCoord.X, chunkCoord.Z + 1));
+        }
+    }
+
     private void EnqueueNeighbor(int chunkX, int chunkZ)
     {
         var coord = new ChunkCoord(chunkX, chunkZ);
@@ -248,5 +271,84 @@ public sealed class ChunkManager
         }
 
         _renderer.EnqueueChunk(chunk, ChunkNeighborhood.FromWorld(_world, chunk), highPriority: true);
+    }
+
+    private void ProcessCompletedChunks()
+    {
+        while (_loader.TryDequeueCompletedChunk(out Chunk? loadedChunk))
+        {
+            if (loadedChunk == null)
+            {
+                continue;
+            }
+
+            var coord = new ChunkCoord(loadedChunk.ChunkX, loadedChunk.ChunkZ);
+            var existing = _world.GetChunk(coord);
+            if (existing != null)
+            {
+                if (_chunkStates.MarkObservedLoaded(coord))
+                {
+                    _loadedThisFrame.Add(coord);
+                }
+                continue;
+            }
+
+            if (!_chunkStates.TryAcceptGenerated(coord))
+            {
+                continue;
+            }
+
+            _world.SetChunk(loadedChunk);
+            _loadedThisFrame.Add(coord);
+        }
+
+        while (_loader.TryDequeueMissingChunk(out ChunkCoord missingCoord))
+        {
+            if (_world.GetChunk(missingCoord) != null)
+            {
+                _chunkStates.MarkObservedLoaded(missingCoord);
+                continue;
+            }
+
+            if (_chunkStates.IsPending(missingCoord))
+            {
+                try
+                {
+                    _generator.Enqueue(missingCoord);
+                }
+                catch
+                {
+                    _chunkStates.Forget(missingCoord);
+                    throw;
+                }
+            }
+        }
+
+        while (_generator.TryDequeueCompletedChunk(out Chunk? chunk))
+        {
+            if (chunk == null)
+            {
+                continue;
+            }
+
+            var coord = new ChunkCoord(chunk.ChunkX, chunk.ChunkZ);
+            var existing = _world.GetChunk(coord);
+            if (existing != null)
+            {
+                if (_chunkStates.MarkObservedLoaded(coord))
+                {
+                    _loadedThisFrame.Add(coord);
+                }
+                continue;
+            }
+
+            if (!_chunkStates.TryAcceptGenerated(coord))
+            {
+                continue;
+            }
+
+            _world.SetChunk(chunk);
+            _loadedThisFrame.Add(coord);
+        }
     }
 }

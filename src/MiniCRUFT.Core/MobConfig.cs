@@ -1,0 +1,50 @@
+namespace MiniCRUFT.Core;
+
+public sealed class MobConfig
+{
+    public bool Enabled { get; set; } = true;
+    public int MaxAlive { get; set; } = 24;
+    public int MaxEventQueue { get; set; } = 1024;
+    public int SpawnRadius { get; set; } = 96;
+    public int DespawnRadius { get; set; } = 144;
+    public float SpawnIntervalSeconds { get; set; } = 3.5f;
+    public int SpawnAttemptsPerTick { get; set; } = 16;
+    public int PlayerAttackDamage { get; set; } = 4;
+    public float PlayerAttackCooldownSeconds { get; set; } = 0.35f;
+    public float PlayerDamageCooldownSeconds { get; set; } = 0.85f;
+    public float HostileDayMultiplier { get; set; } = 0.25f;
+    public float HostileNightMultiplier { get; set; } = 1f;
+    public float PassiveDayMultiplier { get; set; } = 1f;
+    public float PassiveNightMultiplier { get; set; } = 0.45f;
+    public float RainHostileMultiplier { get; set; } = 1.35f;
+    public float RainPassiveMultiplier { get; set; } = 0.7f;
+    public float HostileSkyExposureMultiplier { get; set; } = 0.35f;
+    public float HostileShelterMultiplier { get; set; } = 1.15f;
+    public float PassiveSkyExposureMultiplier { get; set; } = 1.2f;
+    public float PassiveShelterMultiplier { get; set; } = 0.55f;
+    public float Gravity { get; set; } = -20f;
+    public float WaterSlowMultiplier { get; set; } = 0.35f;
+    public float WaterBuoyancy { get; set; } = 6f;
+    public float WaterCurrentMultiplier { get; set; } = 0.9f;
+    public float LavaDamagePerSecond { get; set; } = 8f;
+    public float EdgeAvoidDistance { get; set; } = 1.2f;
+    public float StepHeight { get; set; } = 0.6f;
+    public float JumpVelocity { get; set; } = 5.8f;
+    public float WanderChangeSeconds { get; set; } = 3f;
+    public float HostilePursuitSeconds { get; set; } = 4f;
+    public float HostilePursuitSpeedMultiplier { get; set; } = 1.1f;
+    public float ZombieWeight { get; set; } = 1f;
+    public float CreeperWeight { get; set; } = 0.6f;
+    public float CowWeight { get; set; } = 1.2f;
+    public float SheepWeight { get; set; } = 1.1f;
+    public float ChickenWeight { get; set; } = 0.9f;
+    public float EliteSpawnChance { get; set; } = 0.035f;
+    public float EliteVariantChance { get; set; } = 0.2f;
+    public float EliteHealthMultiplier { get; set; } = 1.8f;
+    public float EliteDamageMultiplier { get; set; } = 1.35f;
+    public float EliteSpeedMultiplier { get; set; } = 1.12f;
+    public float ElitePursuitMultiplier { get; set; } = 1.4f;
+    public float EliteDropMultiplier { get; set; } = 1.5f;
+    public float StaggerSeconds { get; set; } = 0.18f;
+    public float StaggerSpeedMultiplier { get; set; } = 0.3f;
+}

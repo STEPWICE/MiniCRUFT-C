@@ -2,10 +2,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MiniCRUFT.Core\MiniCRUFT.Core.csproj" />
+    <ProjectReference Include="..\MiniCRUFT.World\MiniCRUFT.World.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FontStashSharp" Version="1.3.10" />
   </ItemGroup>
 
   <PropertyGroup>

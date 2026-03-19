@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 using Veldrid;
 using Veldrid.SPIRV;
@@ -120,8 +121,8 @@ public sealed class SpriteBatch : IDisposable
         commandList.SetGraphicsResourceSet(0, _set);
         commandList.SetVertexBuffer(0, _vertexBuffer);
         commandList.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-        commandList.UpdateBuffer(_vertexBuffer, 0, _vertices.ToArray());
-        commandList.UpdateBuffer(_indexBuffer, 0, _indices.ToArray());
+        commandList.UpdateBuffer(_vertexBuffer, 0, CollectionsMarshal.AsSpan(_vertices));
+        commandList.UpdateBuffer(_indexBuffer, 0, CollectionsMarshal.AsSpan(_indices));
         commandList.DrawIndexed((uint)_indices.Count, 1, 0, 0, 0);
     }
 

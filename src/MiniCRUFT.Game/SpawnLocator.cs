@@ -18,8 +18,21 @@ public static class SpawnLocator
         float maxSlope = config.MaxSlope > 0f ? config.MaxSlope : settings.CliffSlopeThreshold * 0.7f;
         int minHeight = Math.Max(1, config.MinHeightAboveSea);
 
-        var excluded = BuildExcludedBiomes(config.ExcludedBiomes);
-        var random = new Random(seed ^ 0x5F3759DF);
+        var excluded = BuildExcludedBiomes(config.ExcludedBiomes, out var invalidBiomeNames);
+        if (invalidBiomeNames.Count > 0)
+        {
+            Log.Warn($"Ignored unsupported spawn excluded biomes: {string.Join(", ", invalidBiomeNames)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(config.Mode) &&
+            !config.Mode.Equals("AnyNonRiver", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Warn($"Unsupported spawn mode '{config.Mode}' in config; current code only honors AnyNonRiver.");
+        }
+
+        var random = config.Randomize
+            ? new Random(unchecked(Environment.TickCount ^ seed))
+            : new Random(seed ^ 0x5F3759DF);
         var sampler = new WorldHeightSampler(seed, settings);
         var generator = new WorldGenerator(seed, settings);
 
@@ -98,9 +111,10 @@ public static class SpawnLocator
         Log.Info($"Biome sample ({size}x{size}) around spawn: {string.Join(", ", parts)}");
     }
 
-    private static HashSet<BiomeId> BuildExcludedBiomes(List<string>? names)
+    private static HashSet<BiomeId> BuildExcludedBiomes(List<string>? names, out List<string> invalidNames)
     {
         var result = new HashSet<BiomeId>();
+        invalidNames = new List<string>();
         if (names == null)
         {
             return result;
@@ -110,6 +124,12 @@ public static class SpawnLocator
             if (Enum.TryParse<BiomeId>(name, true, out var biome))
             {
                 result.Add(biome);
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                invalidNames.Add(name);
             }
         }
         return result;

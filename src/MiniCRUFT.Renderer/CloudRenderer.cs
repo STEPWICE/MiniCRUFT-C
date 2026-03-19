@@ -155,8 +155,8 @@ public sealed class CloudRenderer : IDisposable
             _indexBuffer = _device.ResourceFactory.CreateBuffer(new BufferDescription(indexSize, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
         }
 
-        _device.UpdateBuffer(_vertexBuffer, 0, vertices.ToArray());
-        _device.UpdateBuffer(_indexBuffer, 0, indices.ToArray());
+        _device.UpdateBuffer(_vertexBuffer, 0, CollectionsMarshal.AsSpan(vertices));
+        _device.UpdateBuffer(_indexBuffer, 0, CollectionsMarshal.AsSpan(indices));
         _indexCount = (uint)indices.Count;
     }
 
@@ -164,12 +164,16 @@ public sealed class CloudRenderer : IDisposable
     {
         var viewProj = camera.View * camera.Projection;
         var matrix = _useRowMajorMatrices ? viewProj : Matrix4x4.Transpose(viewProj);
-        var fogParams = new Vector4(_renderConfig.FogStart, _renderConfig.FogEnd, atmosphere.TimeSeconds, _renderConfig.LinearFog ? 0f : 1f);
-        var cameraPos = new Vector4(camera.Position, atmosphere.SunIntensity);
-        float uvScale = _atmosphere.CloudTiling / MathF.Max(1f, _cloudTexture.Size.X);
-        var cloudParams = new Vector4(uvScale, atmosphere.CloudOffset, _atmosphere.CloudOpacity, _atmosphere.CloudRadius);
+        var fogParams = new Vector4(atmosphere.FogStart, atmosphere.FogEnd, atmosphere.TimeSeconds, _renderConfig.LinearFog ? 0f : 1f);
+        var cameraPos = new Vector4(camera.Position, Math.Clamp(atmosphere.SunIntensity * (1f - atmosphere.RainIntensity * 0.12f), 0.05f, 1f));
+        float texSize = MathF.Max(1f, _cloudTexture.Size.X);
+        float uvScale = _atmosphere.CloudTiling / texSize;
+        float uvSnap = uvScale * MathF.Max(1f, _atmosphere.CloudBlockSize);
+        float cloudOpacity = _atmosphere.CloudOpacity * (1f - atmosphere.RainIntensity * 0.25f);
+        var cloudParams = new Vector4(uvScale, atmosphere.CloudOffset, cloudOpacity, _atmosphere.CloudRadius);
+        var cloudParams2 = new Vector4(_atmosphere.CloudAlphaCutoff, uvSnap, 0f, 0f);
         var horizonParams = new Vector4(_renderConfig.Fog.HorizonBlendStrength, _renderConfig.Fog.HorizonBlendPower, 0f, 0f);
-        var uniform = new CloudUniform(matrix, atmosphere.FogColor, fogParams, cameraPos, cloudParams, horizonParams);
+        var uniform = new CloudUniform(matrix, atmosphere.FogColor, fogParams, cameraPos, cloudParams, cloudParams2, horizonParams);
         _device.UpdateBuffer(_uniformBuffer, 0, ref uniform);
     }
 
@@ -196,6 +200,7 @@ layout(set = 0, binding = 0) uniform CloudUniform
     vec4 FogParams;
     vec4 CameraPos;
     vec4 CloudParams;
+    vec4 CloudParams2;
     vec4 HorizonParams;
 };
 
@@ -221,6 +226,7 @@ layout(set = 0, binding = 0) uniform CloudUniform
     vec4 FogParams;
     vec4 CameraPos;
     vec4 CloudParams;
+    vec4 CloudParams2;
     vec4 HorizonParams;
 };
 
@@ -263,18 +269,28 @@ void main()
     const float OffsetScale = 0.35;
     const float EdgeFade = 0.15;
     vec2 uv = fsin_WorldPos.xz * CloudParams.x + vec2(CloudParams.y, CloudParams.y * OffsetScale);
+    float snap = CloudParams2.y;
+    if (snap > 0.0)
+    {
+        uv = floor(uv / snap) * snap + snap * 0.5;
+    }
     vec4 tex = texture(sampler2D(CloudTexture, CloudSampler), uv);
     float sun = clamp(CameraPos.w, 0.1, 1.0);
 
     float dist = length(fsin_WorldPos.xz - CameraPos.xz);
     float fade = 1.0 - smoothstep(CloudParams.w * (1.0 - EdgeFade), CloudParams.w, dist);
-    float alpha = tex.a * CloudParams.z * fade;
+    float cutoff = CloudParams2.x;
+    if (tex.a <= cutoff)
+    {
+        discard;
+    }
+    float alpha = ((tex.a - cutoff) / max(1.0 - cutoff, 0.001)) * CloudParams.z * fade;
     if (alpha <= 0.01)
     {
         discard;
     }
 
-    vec3 rgb = tex.rgb * mix(0.7, 1.0, sun);
+    vec3 rgb = tex.rgb * mix(0.58, 1.0, sun);
     float fogFactor = ComputeFogFactor(length(fsin_WorldPos - CameraPos.xyz));
     float horizonMask = smoothstep(FogParams.x, FogParams.y, dist);
     fogFactor = ApplyHorizon(fogFactor, fsin_WorldPos, CameraPos.xyz, HorizonParams.x, HorizonParams.y, horizonMask);
@@ -302,6 +318,7 @@ cbuffer CloudUniform : register(b0)
     float4 FogParams;
     float4 CameraPos;
     float4 CloudParams;
+    float4 CloudParams2;
     float4 HorizonParams;
 };
 
@@ -335,6 +352,7 @@ cbuffer CloudUniform : register(b0)
     float4 FogParams;
     float4 CameraPos;
     float4 CloudParams;
+    float4 CloudParams2;
     float4 HorizonParams;
 };
 
@@ -380,18 +398,28 @@ float4 main(PSInput input) : SV_Target
     const float OffsetScale = 0.35;
     const float EdgeFade = 0.15;
     float2 uv = input.WorldPos.xz * CloudParams.x + float2(CloudParams.y, CloudParams.y * OffsetScale);
+    float snap = CloudParams2.y;
+    if (snap > 0.0)
+    {
+        uv = floor(uv / snap) * snap + snap * 0.5;
+    }
     float4 tex = CloudTexture.Sample(CloudSampler, uv);
     float sun = clamp(CameraPos.w, 0.1, 1.0);
 
     float distFlat = length(input.WorldPos.xz - CameraPos.xz);
     float fade = 1.0 - smoothstep(CloudParams.w * (1.0 - EdgeFade), CloudParams.w, distFlat);
-    float alpha = tex.a * CloudParams.z * fade;
+    float cutoff = CloudParams2.x;
+    if (tex.a <= cutoff)
+    {
+        discard;
+    }
+    float alpha = ((tex.a - cutoff) / max(1.0 - cutoff, 0.001)) * CloudParams.z * fade;
     if (alpha <= 0.01)
     {
         discard;
     }
 
-    float3 rgb = tex.rgb * lerp(0.7, 1.0, sun);
+    float3 rgb = tex.rgb * lerp(0.58, 1.0, sun);
     float fogFactor = ComputeFogFactor(length(input.WorldPos - CameraPos.xyz));
     float horizonMask = smoothstep(FogParams.x, FogParams.y, distFlat);
     fogFactor = ApplyHorizon(fogFactor, input.WorldPos, CameraPos.xyz, HorizonParams.x, HorizonParams.y, horizonMask);
@@ -446,15 +474,17 @@ float4 main(PSInput input) : SV_Target
         public readonly Vector4 FogParams;
         public readonly Vector4 CameraPos;
         public readonly Vector4 CloudParams;
+        public readonly Vector4 CloudParams2;
         public readonly Vector4 HorizonParams;
 
-        public CloudUniform(Matrix4x4 viewProjection, Vector4 fogColor, Vector4 fogParams, Vector4 cameraPos, Vector4 cloudParams, Vector4 horizonParams)
+        public CloudUniform(Matrix4x4 viewProjection, Vector4 fogColor, Vector4 fogParams, Vector4 cameraPos, Vector4 cloudParams, Vector4 cloudParams2, Vector4 horizonParams)
         {
             ViewProjection = viewProjection;
             FogColor = fogColor;
             FogParams = fogParams;
             CameraPos = cameraPos;
             CloudParams = cloudParams;
+            CloudParams2 = cloudParams2;
             HorizonParams = horizonParams;
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using MiniCRUFT.Core;
@@ -17,10 +18,14 @@ public sealed class Localization
             if (data != null)
             {
                 _strings = data;
+                return;
             }
+
+            Log.Warn($"Localization file {relativePath} is empty or unsupported; falling back to key names.");
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Warn($"Failed to load localization file {relativePath}: {ex.Message}");
             _strings = new Dictionary<string, string>();
         }
     }

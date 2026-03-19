@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using Veldrid;
 
 namespace MiniCRUFT.Renderer;
@@ -31,8 +32,8 @@ public sealed class ChunkMesh : IDisposable
         var vertexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription(vertexBufferSize, BufferUsage.VertexBuffer));
         var indexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription(indexBufferSize, BufferUsage.IndexBuffer));
 
-        device.UpdateBuffer(vertexBuffer, 0, vertices.ToArray());
-        device.UpdateBuffer(indexBuffer, 0, indices.ToArray());
+        device.UpdateBuffer(vertexBuffer, 0, CollectionsMarshal.AsSpan(vertices));
+        device.UpdateBuffer(indexBuffer, 0, CollectionsMarshal.AsSpan(indices));
 
         return new MeshPart(vertexBuffer, indexBuffer, (uint)indices.Count);
     }

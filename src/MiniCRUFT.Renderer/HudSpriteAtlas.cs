@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using MiniCRUFT.Core;
 using Veldrid;
 
@@ -27,7 +26,7 @@ public sealed class HudSpriteAtlas
 
     public static HudSpriteAtlas Load(GraphicsDevice device, AssetStore assets)
     {
-        var sources = new List<SpriteSource>
+        SpriteSource[] sources =
         {
             new("hotbar", "minecraft/gui/sprites/hud/hotbar.png"),
             new("hotbar_selection", "minecraft/gui/sprites/hud/hotbar_selection.png"),

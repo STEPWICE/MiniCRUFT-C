@@ -24,10 +24,15 @@ public sealed class BiomeColorMap
         _height = height;
     }
 
-    public static BiomeColorMap Load(AssetStore assets)
+    public static BiomeColorMap Load(AssetStore assets, bool strict = false)
     {
         var grass = LoadMap(assets, "minecraft/textures/colormap/grass.png", out int width, out int height);
         var foliage = LoadMap(assets, "minecraft/textures/colormap/foliage.png", out _, out _);
+        if (strict)
+        {
+            ValidateMap("grass", grass, width, height);
+            ValidateMap("foliage", foliage, width, height);
+        }
         return new BiomeColorMap(grass, foliage, width, height);
     }
 
@@ -90,5 +95,25 @@ public sealed class BiomeColorMap
             }
         }
         return data;
+    }
+
+    private static void ValidateMap(string name, Vector3[] map, int width, int height)
+    {
+        if (map.Length == 0)
+        {
+            throw new InvalidOperationException($"Biome colormap '{name}' is empty.");
+        }
+
+        var first = map[0];
+        for (int i = 1; i < map.Length; i++)
+        {
+            var current = map[i];
+            if (!current.Equals(first))
+            {
+                return;
+            }
+        }
+
+        throw new InvalidOperationException($"Biome colormap '{name}' appears to be a flat placeholder ({width}x{height}).");
     }
 }

@@ -5,5 +5,6 @@ public enum RenderMode
     Opaque = 0,
     Cutout = 1,
     Transparent = 2,
-    Cross = 3
+    Cross = 3,
+    Torch = 4
 }
