@@ -22,11 +22,49 @@ public sealed class RenderDevice : IDisposable
         Window.Resized += () => _resized = true;
     }
 
-    public static RenderDevice Create(string title, int width, int height, bool vsync)
+    public static WindowState GetInitialWindowState(bool fullscreen)
+    {
+        return fullscreen ? WindowState.BorderlessFullScreen : WindowState.Normal;
+    }
+
+    public static (int X, int Y) GetCenteredWindowPosition(int displayX, int displayY, int displayWidth, int displayHeight, int windowWidth, int windowHeight)
+    {
+        int width = Math.Max(1, windowWidth);
+        int height = Math.Max(1, windowHeight);
+        int centeredX = displayX + Math.Max(0, (displayWidth - width) / 2);
+        int centeredY = displayY + Math.Max(0, (displayHeight - height) / 2);
+        return (centeredX, centeredY);
+    }
+
+    public unsafe void CenterOnCurrentDisplayIfNeeded()
+    {
+        if (Window.WindowState == WindowState.BorderlessFullScreen || Window.WindowState == WindowState.FullScreen ||
+            Window.WindowState == WindowState.Minimized || Window.WindowState == WindowState.Hidden)
+        {
+            return;
+        }
+
+        int displayIndex = Sdl2Native.SDL_GetWindowDisplayIndex(Window.SdlWindowHandle);
+        if (displayIndex < 0)
+        {
+            return;
+        }
+
+        Rectangle displayBounds;
+        if (Sdl2Native.SDL_GetDisplayBounds(displayIndex, &displayBounds) != 0)
+        {
+            return;
+        }
+
+        var (x, y) = GetCenteredWindowPosition(displayBounds.X, displayBounds.Y, displayBounds.Width, displayBounds.Height, Window.Width, Window.Height);
+        Sdl2Native.SDL_SetWindowPosition(Window.SdlWindowHandle, x, y);
+    }
+
+    public static RenderDevice Create(string title, int x, int y, int width, int height, bool vsync, bool fullscreen, bool centerWindowOnStart)
     {
         try
         {
-            var windowCI = new WindowCreateInfo(100, 100, width, height, WindowState.Normal, title);
+            var windowCI = new WindowCreateInfo(x, y, width, height, GetInitialWindowState(fullscreen), title);
             var options = new GraphicsDeviceOptions(
                 debug: false,
                 swapchainDepthFormat: PixelFormat.D24_UNorm_S8_UInt,
@@ -58,7 +96,14 @@ public sealed class RenderDevice : IDisposable
                 }
             }
 
-            return new RenderDevice(window, gd);
+            var renderDevice = new RenderDevice(window, gd);
+            WindowIcon.TryApply(window, Path.Combine(AppContext.BaseDirectory, "Icon.ico"));
+            if (centerWindowOnStart)
+            {
+                renderDevice.CenterOnCurrentDisplayIfNeeded();
+            }
+
+            return renderDevice;
         }
         catch (Exception ex)
         {
@@ -72,7 +117,9 @@ public sealed class RenderDevice : IDisposable
         if (_resized)
         {
             _resized = false;
-            GraphicsDevice.MainSwapchain.Resize((uint)Window.Width, (uint)Window.Height);
+            int width = Math.Max(1, Window.Width);
+            int height = Math.Max(1, Window.Height);
+            GraphicsDevice.MainSwapchain.Resize((uint)width, (uint)height);
         }
     }
 

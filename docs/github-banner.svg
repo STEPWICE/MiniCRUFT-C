@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" role="img" aria-labelledby="title desc">
+  <title id="title">MiniCRUFT banner</title>
+  <desc id="desc">Dark voxel-style banner for the MiniCRUFT repository.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#08111b"/>
+      <stop offset="52%" stop-color="#10263a"/>
+      <stop offset="100%" stop-color="#0f1724"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5eead4" stop-opacity="0.0"/>
+      <stop offset="50%" stop-color="#5eead4" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/>
+    </linearGradient>
+    <linearGradient id="cubeTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8be9ff"/>
+      <stop offset="100%" stop-color="#d8fbff"/>
+    </linearGradient>
+    <linearGradient id="cubeLeft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f8a98"/>
+      <stop offset="100%" stop-color="#0f3d57"/>
+    </linearGradient>
+    <linearGradient id="cubeRight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2dc2a5"/>
+      <stop offset="100%" stop-color="#11585d"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="420" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1600" height="420" fill="url(#glow)" opacity="0.6"/>
+
+  <g opacity="0.22">
+    <rect x="70" y="48" width="16" height="16" fill="#87f3ff"/>
+    <rect x="104" y="48" width="16" height="16" fill="#87f3ff"/>
+    <rect x="138" y="48" width="16" height="16" fill="#87f3ff"/>
+    <rect x="172" y="48" width="16" height="16" fill="#87f3ff"/>
+    <rect x="206" y="48" width="16" height="16" fill="#87f3ff"/>
+    <rect x="70" y="82" width="16" height="16" fill="#87f3ff"/>
+    <rect x="104" y="82" width="16" height="16" fill="#87f3ff"/>
+    <rect x="138" y="82" width="16" height="16" fill="#87f3ff"/>
+    <rect x="172" y="82" width="16" height="16" fill="#87f3ff"/>
+    <rect x="206" y="82" width="16" height="16" fill="#87f3ff"/>
+    <rect x="70" y="116" width="16" height="16" fill="#87f3ff"/>
+    <rect x="104" y="116" width="16" height="16" fill="#87f3ff"/>
+    <rect x="138" y="116" width="16" height="16" fill="#87f3ff"/>
+    <rect x="172" y="116" width="16" height="16" fill="#87f3ff"/>
+    <rect x="206" y="116" width="16" height="16" fill="#87f3ff"/>
+  </g>
+
+  <g opacity="0.12">
+    <rect x="1260" y="42" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1286" y="42" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1312" y="42" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1338" y="42" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1364" y="42" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1299" y="68" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1325" y="68" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1351" y="68" width="18" height="18" fill="#c7fbff"/>
+    <rect x="1273" y="68" width="18" height="18" fill="#c7fbff"/>
+  </g>
+
+  <g transform="translate(1030 92)" filter="url(#shadow)">
+    <polygon points="180,30 280,-10 380,30 280,70" fill="url(#cubeTop)"/>
+    <polygon points="180,30 280,70 280,210 180,170" fill="url(#cubeLeft)"/>
+    <polygon points="280,70 380,30 380,170 280,210" fill="url(#cubeRight)"/>
+    <polygon points="206,29 280,0 354,29 280,57" fill="#e8ffff" opacity="0.6"/>
+    <rect x="248" y="94" width="22" height="22" fill="#08111b" opacity="0.35"/>
+    <rect x="274" y="120" width="22" height="22" fill="#08111b" opacity="0.28"/>
+    <rect x="232" y="122" width="18" height="18" fill="#08111b" opacity="0.22"/>
+    <rect x="305" y="96" width="14" height="14" fill="#08111b" opacity="0.22"/>
+    <rect x="156" y="164" width="260" height="22" rx="11" fill="#000000" opacity="0.25"/>
+  </g>
+
+  <g transform="translate(96 86)">
+    <rect x="0" y="0" width="14" height="252" rx="7" fill="#52d6ff"/>
+    <text x="34" y="24" fill="#a6f0ff" font-family="Segoe UI, Arial, sans-serif" font-size="22" letter-spacing="4" opacity="0.9">MINICRUFT</text>
+    <text x="34" y="92" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="700">MiniCRUFT</text>
+    <text x="36" y="138" fill="#d7eef8" font-family="Segoe UI, Arial, sans-serif" font-size="26">C# voxel sandbox inspired by Minecraft Beta 1.7.3</text>
+    <text x="36" y="178" fill="#9cb8ca" font-family="Segoe UI, Arial, sans-serif" font-size="22">.NET 10  /  Veldrid  /  survival, worldgen, mobs, audio</text>
+
+    <g transform="translate(36 214)">
+      <rect x="0" y="0" width="126" height="34" rx="17" fill="#173244"/>
+      <text x="63" y="22" fill="#d7eef8" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600">Voxel</text>
+
+      <rect x="142" y="0" width="146" height="34" rx="17" fill="#153c38"/>
+      <text x="215" y="22" fill="#d7eef8" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600">Survival</text>
+
+      <rect x="304" y="0" width="134" height="34" rx="17" fill="#17314a"/>
+      <text x="371" y="22" fill="#d7eef8" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600">Worldgen</text>
+    </g>
+  </g>
+</svg>

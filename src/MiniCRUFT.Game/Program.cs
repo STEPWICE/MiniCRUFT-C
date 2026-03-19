@@ -1,5 +1,6 @@
 using System;
 using MiniCRUFT.Core;
+using MiniCRUFT.IO;
 
 namespace MiniCRUFT.Game;
 
@@ -14,37 +15,28 @@ internal static class Program
             Log.Info($"OS: {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
             Log.Info($"BaseDir: {AppContext.BaseDirectory}");
             const string configPath = "config.json";
+            bool centerWindowOnStart = !System.IO.File.Exists(configPath);
             var config = GameConfig.LoadOrCreate(configPath);
             if (config.ResetWorldOnLaunch)
             {
-                ResetWorld(config);
+                WorldReset.ResetOrThrow(config.WorldPath, config.Seed);
                 config.ResetWorldOnLaunch = false;
-                GameConfig.Save(configPath, config);
+                try
+                {
+                    GameConfig.Save(configPath, config);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn($"Failed to persist reset flag after world reset: {ex.Message}");
+                }
             }
-            using var app = new GameApp(config);
+            using var app = new GameApp(config, configPath, centerWindowOnStart);
             app.Run();
         }
         catch (Exception ex)
         {
             Log.Error($"Fatal: {ex}");
             throw;
-        }
-    }
-
-    private static void ResetWorld(GameConfig config)
-    {
-        try
-        {
-            if (System.IO.Directory.Exists(config.WorldPath))
-            {
-                System.IO.Directory.Delete(config.WorldPath, true);
-            }
-            System.IO.Directory.CreateDirectory(config.WorldPath);
-            Log.Warn("World reset: cleared existing world data.");
-        }
-        catch (Exception ex)
-        {
-            Log.Warn($"World reset failed: {ex.Message}");
         }
     }
 }
