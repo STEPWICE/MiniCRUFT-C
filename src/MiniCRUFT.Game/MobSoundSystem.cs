@@ -65,7 +65,7 @@ public sealed class MobSoundSystem : IDisposable
             MobEventKind.Explosion when mobEvent.Type == MobType.Creeper => _config.ExplosionVolume,
             _ => _config.MobVolume
         };
-        float volume = Math.Clamp(baseVolume * Math.Clamp(mobEvent.Intensity, 0.2f, 2f), 0f, 1f);
+        float volume = Math.Clamp(baseVolume * _config.MasterVolume * Math.Clamp(mobEvent.Intensity, 0.2f, 2f), 0f, 1f);
         PlayRandom(list, volume, mobEvent.Position);
     }
 
@@ -98,6 +98,11 @@ public sealed class MobSoundSystem : IDisposable
     private void PlayRandom(List<string> sounds, float volume, Vector3 sourcePosition)
     {
         if (sounds.Count == 0)
+        {
+            return;
+        }
+
+        if (volume <= 0f)
         {
             return;
         }

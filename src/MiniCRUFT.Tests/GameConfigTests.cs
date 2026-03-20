@@ -206,6 +206,7 @@ public sealed class GameConfigTests
                     SpatialInnerRadius = 3.5f,
                     SpatialOuterRadius = 28f,
                     SpatialPanStrength = 0.8f,
+                    MasterVolume = 0.9f,
                     MobVolume = 0.8f,
                     MobStepVolume = 0.55f,
                     FuseVolume = 0.45f,
@@ -485,6 +486,7 @@ public sealed class GameConfigTests
             Assert.Equal(4.6f, loaded.Physics.WaterJumpVelocity);
             Assert.Equal(2.75f, loaded.Physics.WaterMaxFallSpeed);
             Assert.Equal(1.75f, loaded.Physics.WaterCurrentMultiplier);
+            Assert.Equal(0.9f, loaded.Audio.MasterVolume);
             Assert.Equal(0.8f, loaded.Audio.MobVolume);
             Assert.Equal(0.55f, loaded.Audio.MobStepVolume);
             Assert.Equal(0.45f, loaded.Audio.FuseVolume);
@@ -726,6 +728,7 @@ public sealed class GameConfigTests
                 SpatialInnerRadius = -1f,
                 SpatialOuterRadius = 0.1f,
                 SpatialPanStrength = 2f,
+                MasterVolume = -1f,
                 MobVolume = -1f,
                 MobStepVolume = 2f,
                 FuseVolume = 2f,
@@ -959,6 +962,7 @@ public sealed class GameConfigTests
         Assert.Equal(0.5f, config.Audio.SpatialInnerRadius);
         Assert.Equal(1.5f, config.Audio.SpatialOuterRadius);
         Assert.Equal(1f, config.Audio.SpatialPanStrength);
+        Assert.Equal(0f, config.Audio.MasterVolume);
         Assert.Equal(0.1f, config.Audio.SwimStepDistance);
         Assert.Equal(1.2f, config.Physics.EyeHeight);
         Assert.Equal(1f, config.Physics.SprintMultiplier);

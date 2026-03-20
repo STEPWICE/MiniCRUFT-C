@@ -289,7 +289,8 @@ public sealed class SoundSystem : IDisposable
     {
         try
         {
-            var mix = SpatialAudio.Calculate(_listenerPosition, sourcePosition, _listenerRight, _config, volume);
+            float masterVolume = Math.Clamp(_config.MasterVolume, 0f, 1f);
+            var mix = SpatialAudio.Calculate(_listenerPosition, sourcePosition, _listenerRight, _config, volume * masterVolume);
             if (mix.Volume <= 0f)
             {
                 return;

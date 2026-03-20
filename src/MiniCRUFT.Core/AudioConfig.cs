@@ -7,6 +7,7 @@ public sealed class AudioConfig
     public float SpatialInnerRadius { get; set; } = 2.5f;
     public float SpatialOuterRadius { get; set; } = 32f;
     public float SpatialPanStrength { get; set; } = 1f;
+    public float MasterVolume { get; set; } = 1f;
     public float DigVolume { get; set; } = 0.85f;
     public float PlaceVolume { get; set; } = 0.6f;
     public float AmbientVolume { get; set; } = 0.45f;

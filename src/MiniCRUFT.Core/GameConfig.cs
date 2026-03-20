@@ -561,6 +561,7 @@ public sealed class GameConfig
         }
 
         Audio.SpatialPanStrength = Math.Clamp(Audio.SpatialPanStrength, 0f, 1f);
+        Audio.MasterVolume = Math.Clamp(Audio.MasterVolume, 0f, 1f);
 
         Audio.DigVolume = Math.Clamp(Audio.DigVolume, 0f, 1f);
         Audio.PlaceVolume = Math.Clamp(Audio.PlaceVolume, 0f, 1f);

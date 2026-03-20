@@ -136,10 +136,16 @@ public sealed class AmbientSoundSystem : IDisposable
             return;
         }
 
+        float scaledVolume = Math.Clamp(volume * _config.MasterVolume, 0f, 1f);
+        if (scaledVolume <= 0f)
+        {
+            return;
+        }
+
         string path = list[_rand.Next(list.Count)];
         try
         {
-            _backend.Play(path, volume);
+            _backend.Play(path, scaledVolume);
         }
         catch (Exception ex)
         {

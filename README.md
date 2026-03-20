@@ -31,9 +31,9 @@ run.bat
 - `F3` - debug HUD
 - `F5` - biome menu
 - `F6` - seed menu
-- `Tab` - pause / settings menu
-- `Up / Down` - move in pause/settings menus
-- `Left / Right` - adjust values in settings
+- `Tab` - pause / settings / audio menu
+- `Up / Down` - move in pause/settings/audio menus
+- `Left / Right` - adjust values in settings and audio
 - `Enter` - apply selection, toggle a setting, or regenerate
 - `F11` - fullscreen
 - `Esc` - back out of menus, resume from pause, or exit when no menu is open

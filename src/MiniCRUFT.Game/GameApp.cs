@@ -62,6 +62,7 @@ public sealed class GameApp : IDisposable
     private int _biomeMenuIndex;
     private bool _showSeedMenu;
     private bool _showSettingsMenu;
+    private bool _showAudioSettingsMenu;
     private string _seedInput = string.Empty;
     private bool _inventoryOpen;
     private bool _pendingRegen;
@@ -73,6 +74,7 @@ public sealed class GameApp : IDisposable
     private bool _paused;
     private int _pauseMenuIndex;
     private int _settingsMenuIndex;
+    private int _audioSettingsMenuIndex;
     private bool _showDebug;
     private float _fpsTimer;
     private int _fpsFrames;
@@ -84,6 +86,7 @@ public sealed class GameApp : IDisposable
     private string _statusToastText = string.Empty;
     private const float MouseSensitivityStep = 0.01f;
     private const float FieldOfViewStep = 5f;
+    private const float AudioVolumeStep = 0.05f;
 
     private bool _leftHandled;
     private bool _rightHandled;
@@ -165,6 +168,20 @@ public sealed class GameApp : IDisposable
                 }
 
                 HandleSeedMenuKey(key);
+                return;
+            }
+
+            if (_showAudioSettingsMenu)
+            {
+                if (_config.StrictBetaMode)
+                {
+                    _showAudioSettingsMenu = false;
+                    _showSettingsMenu = false;
+                    SyncCursorState();
+                    return;
+                }
+
+                HandleAudioSettingsMenuKey(key);
                 return;
             }
 
@@ -483,7 +500,7 @@ public sealed class GameApp : IDisposable
             _renderDevice.ResizeIfNeeded();
 
             bool simulate = !_paused && !_showBiomeMenu && !_showSeedMenu && !_inventoryOpen;
-            simulate = simulate && !_showSettingsMenu;
+            simulate = simulate && !_showSettingsMenu && !_showAudioSettingsMenu;
             if (simulate)
             {
                 _dayNight.Update(dt);
@@ -597,8 +614,8 @@ public sealed class GameApp : IDisposable
             _hud.InventoryItems = _inventoryItems;
             _hud.ProgressionMilestonesText = BuildProgressionMilestonesText();
             _hud.DebugText = _showDebug ? BuildDebugText() : string.Empty;
-        _hud.MenuText = _showBiomeMenu ? BuildBiomeMenuText() : _showSeedMenu ? BuildSeedMenuText() : _showSettingsMenu ? BuildSettingsMenuText() : _inventoryOpen ? BuildInventoryMenuText() : _paused ? BuildPauseMenuText() : string.Empty;
-            _hud.HerobrineStatusText = (_paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen) ? string.Empty : BuildHerobrineStatusText();
+            _hud.MenuText = _showBiomeMenu ? BuildBiomeMenuText() : _showSeedMenu ? BuildSeedMenuText() : _showAudioSettingsMenu ? BuildAudioSettingsMenuText() : _showSettingsMenu ? BuildSettingsMenuText() : _inventoryOpen ? BuildInventoryMenuText() : _paused ? BuildPauseMenuText() : string.Empty;
+            _hud.HerobrineStatusText = (_paused || _showSettingsMenu || _showAudioSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen) ? string.Empty : BuildHerobrineStatusText();
             _hud.HerobrineToastText = _herobrineToastTimer > 0f ? _herobrineToastText : string.Empty;
             _hud.ProgressionText = BuildProgressionText();
             _hud.SelectedItemName = (_inventoryOpen || _itemNameTimer <= 0f) ? string.Empty : BuildSelectedItemName();
@@ -682,7 +699,7 @@ public sealed class GameApp : IDisposable
 
     private string BuildProgressionText()
     {
-        if (_config.StrictBetaMode || _paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
+        if (_config.StrictBetaMode || _paused || _showSettingsMenu || _showAudioSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
         {
             return string.Empty;
         }
@@ -692,7 +709,7 @@ public sealed class GameApp : IDisposable
 
     private string BuildProgressionMilestonesText()
     {
-        if (_config.StrictBetaMode || _paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
+        if (_config.StrictBetaMode || _paused || _showSettingsMenu || _showAudioSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen)
         {
             return string.Empty;
         }
@@ -1041,6 +1058,17 @@ public sealed class GameApp : IDisposable
             _config.FieldOfView,
             _config.MouseSensitivity,
             _showDebug);
+    }
+
+    private string BuildAudioSettingsMenuText()
+    {
+        return PauseHudText.BuildAudioMenuText(
+            _audioSettingsMenuIndex,
+            _config.Audio.MasterVolume,
+            _config.Audio.MusicVolume,
+            _config.Audio.AmbientVolume,
+            _config.Audio.WeatherVolume,
+            _config.Audio.MobVolume);
     }
 
     private string BuildInventoryMenuText()
@@ -1518,6 +1546,7 @@ public sealed class GameApp : IDisposable
         _showBiomeMenu = false;
         _showSeedMenu = false;
         _showSettingsMenu = false;
+        _showAudioSettingsMenu = false;
         _paused = false;
         _pendingRegen = false;
 
@@ -1796,6 +1825,7 @@ public sealed class GameApp : IDisposable
         }
 
         _showSettingsMenu = false;
+        _showAudioSettingsMenu = false;
         _paused = !_paused;
         if (_paused)
         {
@@ -1814,6 +1844,7 @@ public sealed class GameApp : IDisposable
 
         _paused = true;
         _showSettingsMenu = true;
+        _showAudioSettingsMenu = false;
         _settingsMenuIndex = 0;
         SyncCursorState();
     }
@@ -1821,6 +1852,27 @@ public sealed class GameApp : IDisposable
     private void CloseSettingsMenu()
     {
         _showSettingsMenu = false;
+        _showAudioSettingsMenu = false;
+        SyncCursorState();
+    }
+
+    private void OpenAudioSettingsMenu()
+    {
+        if (_config.StrictBetaMode)
+        {
+            return;
+        }
+
+        _paused = true;
+        _showSettingsMenu = true;
+        _showAudioSettingsMenu = true;
+        _audioSettingsMenuIndex = 0;
+        SyncCursorState();
+    }
+
+    private void CloseAudioSettingsMenu()
+    {
+        _showAudioSettingsMenu = false;
         SyncCursorState();
     }
 
@@ -1865,6 +1917,7 @@ public sealed class GameApp : IDisposable
         if (_config.StrictBetaMode)
         {
             _showSettingsMenu = false;
+            _showAudioSettingsMenu = false;
             SyncCursorState();
             return;
         }
@@ -1889,6 +1942,49 @@ public sealed class GameApp : IDisposable
                 break;
             case Key.Escape:
                 CloseSettingsMenu();
+                break;
+            case Key.Tab:
+                TogglePause();
+                break;
+            case Key.F3:
+                ToggleDebugHud();
+                break;
+            case Key.F11:
+                ToggleFullscreen();
+                break;
+        }
+    }
+
+    private void HandleAudioSettingsMenuKey(KeyEvent key)
+    {
+        if (_config.StrictBetaMode)
+        {
+            _showAudioSettingsMenu = false;
+            _showSettingsMenu = false;
+            SyncCursorState();
+            return;
+        }
+
+        switch (key.Key)
+        {
+            case Key.Up:
+                StepAudioSettingsMenu(-1);
+                break;
+            case Key.Down:
+                StepAudioSettingsMenu(1);
+                break;
+            case Key.Left:
+                AdjustSelectedAudioSetting(-1);
+                break;
+            case Key.Right:
+                AdjustSelectedAudioSetting(1);
+                break;
+            case Key.Enter:
+            case Key.Space:
+                ActivateAudioSettingsMenuSelection();
+                break;
+            case Key.Escape:
+                CloseAudioSettingsMenu();
                 break;
             case Key.Tab:
                 TogglePause();
@@ -1933,7 +2029,19 @@ public sealed class GameApp : IDisposable
                 ToggleDebugHud();
                 break;
             case 4:
+                OpenAudioSettingsMenu();
                 break;
+            case 5:
+                CloseSettingsMenu();
+                break;
+        }
+    }
+
+    private void ActivateAudioSettingsMenuSelection()
+    {
+        if (_audioSettingsMenuIndex == 5)
+        {
+            CloseAudioSettingsMenu();
         }
     }
 
@@ -1954,7 +2062,35 @@ public sealed class GameApp : IDisposable
                 ToggleDebugHud();
                 break;
             case 4:
+                OpenAudioSettingsMenu();
+                break;
+            case 5:
                 CloseSettingsMenu();
+                break;
+        }
+    }
+
+    private void AdjustSelectedAudioSetting(int delta)
+    {
+        switch (_audioSettingsMenuIndex)
+        {
+            case 0:
+                AdjustAudioVolume("Master volume", _config.Audio.MasterVolume, value => _config.Audio.MasterVolume = value, delta * AudioVolumeStep);
+                break;
+            case 1:
+                AdjustAudioVolume("Music volume", _config.Audio.MusicVolume, value => _config.Audio.MusicVolume = value, delta * AudioVolumeStep);
+                break;
+            case 2:
+                AdjustAudioVolume("Ambient volume", _config.Audio.AmbientVolume, value => _config.Audio.AmbientVolume = value, delta * AudioVolumeStep);
+                break;
+            case 3:
+                AdjustAudioVolume("Weather volume", _config.Audio.WeatherVolume, value => _config.Audio.WeatherVolume = value, delta * AudioVolumeStep);
+                break;
+            case 4:
+                AdjustAudioVolume("Mob volume", _config.Audio.MobVolume, value => _config.Audio.MobVolume = value, delta * AudioVolumeStep);
+                break;
+            case 5:
+                CloseAudioSettingsMenu();
                 break;
         }
     }
@@ -1966,7 +2102,12 @@ public sealed class GameApp : IDisposable
 
     private void StepSettingsMenu(int delta)
     {
-        _settingsMenuIndex = StepMenuIndex(_settingsMenuIndex, 5, delta);
+        _settingsMenuIndex = StepMenuIndex(_settingsMenuIndex, 6, delta);
+    }
+
+    private void StepAudioSettingsMenu(int delta)
+    {
+        _audioSettingsMenuIndex = StepMenuIndex(_audioSettingsMenuIndex, 6, delta);
     }
 
     private static int StepMenuIndex(int index, int count, int delta)
@@ -2009,7 +2150,7 @@ public sealed class GameApp : IDisposable
 
     private void SyncCursorState()
     {
-        bool uiOpen = _paused || _showSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen;
+        bool uiOpen = _paused || _showSettingsMenu || _showAudioSettingsMenu || _showBiomeMenu || _showSeedMenu || _inventoryOpen;
         _renderDevice.Window.CursorVisible = uiOpen;
         SetMouseMode(captured: !uiOpen, relative: !uiOpen);
         _inputHandler.SetRelative(!uiOpen);
@@ -2071,6 +2212,25 @@ public sealed class GameApp : IDisposable
         _config.MouseSensitivity = next;
         SetStatusToast($"Mouse sensitivity: {next:0.00}", 1.5f);
         SaveConfig();
+    }
+
+    private void AdjustAudioVolume(string label, float currentValue, Action<float> applyValue, float delta)
+    {
+        float next = Math.Clamp(currentValue + delta, 0f, 1f);
+        if (Math.Abs(next - currentValue) < 0.0001f)
+        {
+            return;
+        }
+
+        applyValue(next);
+        SetStatusToast($"{label}: {FormatAudioVolume(next)}", 1.5f);
+        SaveConfig();
+    }
+
+    private static string FormatAudioVolume(float value)
+    {
+        int percent = (int)MathF.Round(Math.Clamp(value, 0f, 1f) * 100f);
+        return percent.ToString(CultureInfo.InvariantCulture) + "%";
     }
 
     private void SetMouseMode(bool captured, bool relative)
@@ -2322,7 +2482,7 @@ public sealed class GameApp : IDisposable
 
     private FirstPersonRenderState BuildFirstPersonRenderState()
     {
-        bool visible = !_paused && !_showSettingsMenu && !_showBiomeMenu && !_showSeedMenu && !_inventoryOpen;
+        bool visible = !_paused && !_showSettingsMenu && !_showAudioSettingsMenu && !_showBiomeMenu && !_showSeedMenu && !_inventoryOpen;
         BlockId heldBlock = _inventory.GetSelectedBlock();
         float duration = Math.Max(0.01f, _config.FirstPerson.SwingDurationSeconds);
         float swingProgress = _firstPersonSwingTimer <= 0f ? 0f : 1f - Math.Clamp(_firstPersonSwingTimer / duration, 0f, 1f);

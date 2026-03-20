@@ -32,7 +32,7 @@ This file is a compact snapshot for future maintenance and AI-assisted work.
 - Progression guidance now surfaces the next procedure in the HUD, while a milestone panel shows the longer survival route as a series of goals instead of a loose set of systems.
 - Crafting recipe selection is now priority-driven so the HUD and inventory flow point toward the intended progression path instead of whichever recipe happens to appear first in the catalog.
 - The current progression loop is: harvest resources, repair and upgrade tools, mine faster with better tiers, then use the stronger loadout against elite mobs, rare elite variants and other threats.
-- The pause overlay now doubles as a small settings menu for fullscreen, field of view, mouse sensitivity, and debug HUD toggles.
+- The pause overlay now doubles as a small settings menu for fullscreen, field of view, mouse sensitivity, debug HUD toggles, and audio master/group volume controls.
 - Automated tests now cover config roundtrips, legacy config fallback behavior, deterministic world generation, save/load smoke paths, survival systems, and legacy player/chunk/seed compatibility.
 
 ## Files To Check First When Extending
